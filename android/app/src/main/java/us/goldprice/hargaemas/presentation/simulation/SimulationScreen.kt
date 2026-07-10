@@ -8,10 +8,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import us.goldprice.hargaemas.presentation.MainUiState
 import us.goldprice.hargaemas.presentation.MainViewModel
 import us.goldprice.hargaemas.theme.Background
@@ -28,17 +30,21 @@ fun SimulationScreen(viewModel: MainViewModel) {
     
     var gramInput by remember { mutableStateOf("1") }
     var selectedVendor by remember { mutableStateOf("gram - ANTAM") }
+    var expanded by remember { mutableStateOf(false) }
 
     Column(
         modifier = Modifier
             .fillMaxSize()
             .background(Background)
     ) {
+        val headerBrush = Brush.verticalGradient(
+            colors = listOf(Primary, Primary.copy(alpha = 0.8f))
+        )
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .background(Primary)
-                .padding(top = 48.dp, start = 16.dp, end = 16.dp, bottom = 16.dp)
+                .background(headerBrush)
+                .padding(top = 48.dp, start = 16.dp, end = 16.dp, bottom = 32.dp)
         ) {
             Text(
                 text = "Simulasi Investasi",
@@ -49,7 +55,7 @@ fun SimulationScreen(viewModel: MainViewModel) {
             )
             Spacer(modifier = Modifier.height(8.dp))
             Text(
-                text = "Hitung estimasi harga beli dan jual emas Anda hari ini.",
+                text = "Hitung estimasi modal beli dan hasil jual hari ini.",
                 style = MaterialTheme.typography.bodyMedium,
                 color = Color.LightGray
             )
@@ -58,80 +64,134 @@ fun SimulationScreen(viewModel: MainViewModel) {
         when (val state = uiState) {
             is MainUiState.Success -> {
                 val data = state.data
+                val vendors = data.prices.map { it.unit }.distinct()
                 val prices = data.prices.filter { it.unit == selectedVendor }
                 
-                // For simplicity, we just use the 1 gram price as a base multiplier
-                // Real logic might need to interpolate if the user inputs something not exactly matching the table
                 val basePrice1g = prices.find { it.weight == "1" } ?: prices.firstOrNull()
-                
                 val gramValue = gramInput.toDoubleOrNull() ?: 0.0
-                
-                val buyCost = (basePrice1g?.sellPrice ?: 0) * gramValue // User buys at Vendor's sellPrice
-                val sellReturn = (basePrice1g?.buyPrice ?: 0) * gramValue // User sells at Vendor's buyPrice
+                val buyCost = (basePrice1g?.sellPrice ?: 0) * gramValue
+                val sellReturn = (basePrice1g?.buyPrice ?: 0) * gramValue
 
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Vendor", style = MaterialTheme.typography.labelLarge)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    // Simple text for now, could be dropdown
-                    OutlinedTextField(
-                        value = selectedVendor,
-                        onValueChange = { selectedVendor = it },
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .offset(y = (-24).dp)
+                        .padding(horizontal = 16.dp)
+                ) {
+                    Card(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Surface,
-                            unfocusedContainerColor = Surface
-                        )
-                    )
-                    
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    Text("Jumlah Gram", style = MaterialTheme.typography.labelLarge)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    OutlinedTextField(
-                        value = gramInput,
-                        onValueChange = { gramInput = it },
-                        modifier = Modifier.fillMaxWidth(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            focusedContainerColor = Surface,
-                            unfocusedContainerColor = Surface
-                        )
-                    )
+                        shape = RoundedCornerShape(16.dp),
+                        colors = CardDefaults.cardColors(containerColor = Surface),
+                        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                    ) {
+                        Column(modifier = Modifier.padding(24.dp)) {
+                            // Vendor Dropdown
+                            Text("Pilih Vendor", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                            Spacer(modifier = Modifier.height(4.dp))
+                            ExposedDropdownMenuBox(
+                                expanded = expanded,
+                                onExpandedChange = { expanded = !expanded }
+                            ) {
+                                OutlinedTextField(
+                                    value = selectedVendor.replace("gram - ", ""),
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                                    modifier = Modifier
+                                        .menuAnchor()
+                                        .fillMaxWidth(),
+                                    colors = OutlinedTextFieldDefaults.colors(
+                                        focusedContainerColor = Color.Transparent,
+                                        unfocusedContainerColor = Color.Transparent,
+                                        focusedBorderColor = Color.Transparent,
+                                        unfocusedBorderColor = Color.Transparent,
+                                    ),
+                                    textStyle = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, color = Primary)
+                                )
+                                ExposedDropdownMenu(
+                                    expanded = expanded,
+                                    onDismissRequest = { expanded = false },
+                                    modifier = Modifier.background(Surface)
+                                ) {
+                                    vendors.forEach { vendor ->
+                                        DropdownMenuItem(
+                                            text = { Text(vendor.replace("gram - ", "")) },
+                                            onClick = { selectedVendor = vendor; expanded = false }
+                                        )
+                                    }
+                                }
+                            }
+                            HorizontalDivider(color = Color.LightGray.copy(alpha = 0.3f))
+                            
+                            Spacer(modifier = Modifier.height(16.dp))
+                            
+                            // Gram Input
+                            Text("Jumlah Gram", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                            OutlinedTextField(
+                                value = gramInput,
+                                onValueChange = { gramInput = it },
+                                modifier = Modifier.fillMaxWidth(),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                colors = OutlinedTextFieldDefaults.colors(
+                                    focusedContainerColor = Color.Transparent,
+                                    unfocusedContainerColor = Color.Transparent,
+                                    focusedBorderColor = Color.Transparent,
+                                    unfocusedBorderColor = Color.Transparent,
+                                ),
+                                textStyle = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold, color = Primary)
+                            )
+                            HorizontalDivider(color = Color.LightGray.copy(alpha = 0.3f))
+                        }
+                    }
 
-                    Spacer(modifier = Modifier.height(32.dp))
+                    Spacer(modifier = Modifier.height(24.dp))
 
                     val formatRp = NumberFormat.getCurrencyInstance(Locale("id", "ID")).apply {
                         maximumFractionDigits = 0
                     }
 
-                    Card(
+                    // Result Cards
+                    Row(
                         modifier = Modifier.fillMaxWidth(),
-                        colors = CardDefaults.cardColors(containerColor = Secondary.copy(alpha = 0.1f)),
-                        shape = RoundedCornerShape(16.dp)
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
-                        Column(modifier = Modifier.padding(24.dp)) {
-                            Text("Estimasi Biaya Beli", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
-                            Text(
-                                text = formatRp.format(buyCost),
-                                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                                color = Primary
-                            )
-                            
-                            Spacer(modifier = Modifier.height(16.dp))
-                            
-                            Text("Estimasi Hasil Jual (Buyback)", style = MaterialTheme.typography.bodyMedium, color = Color.Gray)
-                            Text(
-                                text = formatRp.format(sellReturn),
-                                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                                color = Secondary
-                            )
+                        Card(
+                            modifier = Modifier.weight(1f),
+                            colors = CardDefaults.cardColors(containerColor = Color.White),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text("Estimasi Beli", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = formatRp.format(buyCost),
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = Primary
+                                )
+                            }
+                        }
+
+                        Card(
+                            modifier = Modifier.weight(1f),
+                            colors = CardDefaults.cardColors(containerColor = Secondary.copy(alpha = 0.1f)),
+                            elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
+                        ) {
+                            Column(modifier = Modifier.padding(16.dp)) {
+                                Text("Estimasi Jual", style = MaterialTheme.typography.labelSmall, color = Secondary)
+                                Spacer(modifier = Modifier.height(8.dp))
+                                Text(
+                                    text = formatRp.format(sellReturn),
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = Secondary
+                                )
+                            }
                         }
                     }
                 }
             }
             else -> {
                 Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Memuat data...")
+                    Text("Memuat data...", color = Color.Gray)
                 }
             }
         }

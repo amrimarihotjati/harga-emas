@@ -19,10 +19,14 @@ import us.goldprice.hargaemas.di.AppContainer
 import us.goldprice.hargaemas.presentation.MainUiState
 import us.goldprice.hargaemas.presentation.MainViewModel
 
+import com.google.android.gms.ads.MobileAds
+
 class MainActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+        
+        MobileAds.initialize(this) {}
         
         // Manual DI initialized here
         val appContainer = AppContainer()

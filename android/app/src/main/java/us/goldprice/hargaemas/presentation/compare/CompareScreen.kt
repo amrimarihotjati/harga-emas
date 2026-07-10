@@ -86,10 +86,11 @@ fun CompareScreen(viewModel: MainViewModel) {
                                 Modifier.fillMaxWidth().background(PrimaryFixed.copy(alpha = 0.3f)).padding(horizontal = 16.dp, vertical = 14.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("Gram", style = MaterialTheme.typography.labelLarge, color = OnSurface, modifier = Modifier.weight(0.2f))
-                                Text(v1Name.take(6), style = MaterialTheme.typography.labelLarge, color = OnSurface, modifier = Modifier.weight(0.3f), textAlign = TextAlign.End)
-                                Text(v2Name.take(6), style = MaterialTheme.typography.labelLarge, color = OnSurface, modifier = Modifier.weight(0.3f), textAlign = TextAlign.End)
-                                Text("Selisih", style = MaterialTheme.typography.labelLarge, color = OnSurface, modifier = Modifier.weight(0.25f), textAlign = TextAlign.End)
+                                Text("Gram", style = MaterialTheme.typography.labelMedium, color = OnSurface, modifier = Modifier.weight(0.15f))
+                                Text(v1Name.take(6), style = MaterialTheme.typography.labelMedium, color = OnSurface, modifier = Modifier.weight(0.25f), textAlign = TextAlign.End)
+                                Text(v2Name.take(6), style = MaterialTheme.typography.labelMedium, color = OnSurface, modifier = Modifier.weight(0.25f), textAlign = TextAlign.End)
+                                Text("Selisih", style = MaterialTheme.typography.labelMedium, color = OnSurface, modifier = Modifier.weight(0.25f), textAlign = TextAlign.End)
+                                Text("Murah", style = MaterialTheme.typography.labelMedium, color = OnSurface, modifier = Modifier.weight(0.10f), textAlign = TextAlign.End)
                             }
 
                             LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
@@ -97,7 +98,7 @@ fun CompareScreen(viewModel: MainViewModel) {
                                     val weight = commonWeights[index]
                                     val p1 = v1Prices[weight]?.sellPrice
                                     val p2 = v2Prices[weight]?.sellPrice
-                                    CompareRowWithDiff(weight, p1, p2)
+                                    CompareRowWithDiff(weight, p1, p2, v1Name, v2Name)
                                     if (index < commonWeights.size - 1) {
                                         HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = OutlineVariant.copy(alpha = 0.3f))
                                     }
@@ -168,7 +169,7 @@ fun VendorSelectorWithIcon(
 }
 
 @Composable
-fun CompareRowWithDiff(weight: String, v1Price: Long?, v2Price: Long?) {
+fun CompareRowWithDiff(weight: String, v1Price: Long?, v2Price: Long?, v1Name: String, v2Name: String) {
     val formatRp = NumberFormat.getNumberInstance(Locale("id", "ID")).apply { maximumFractionDigits = 0 }
     val p1Text = v1Price?.let { "Rp${formatRp.format(it)}" } ?: "-"
     val p2Text = v2Price?.let { "Rp${formatRp.format(it)}" } ?: "-"
@@ -182,27 +183,27 @@ fun CompareRowWithDiff(weight: String, v1Price: Long?, v2Price: Long?) {
     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(
             "${weight}g",
-            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
             color = OnSurface,
-            modifier = Modifier.weight(0.2f)
+            modifier = Modifier.weight(0.15f)
         )
         // V1 price
         Box(
-            Modifier.weight(0.3f).clip(RoundedCornerShape(6.dp))
+            Modifier.weight(0.25f).clip(RoundedCornerShape(6.dp))
                 .background(if (v1IsCheaper) Success.copy(alpha = 0.08f) else if (v2IsCheaper) Error.copy(alpha = 0.05f) else Color.Transparent)
-                .padding(vertical = 4.dp, horizontal = 4.dp),
+                .padding(vertical = 4.dp, horizontal = 2.dp),
             contentAlignment = Alignment.CenterEnd
         ) {
-            Text(p1Text, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = if (v1IsCheaper) FontWeight.Bold else FontWeight.Normal), color = if (v1IsCheaper) Success else if (v2IsCheaper) Error else OnSurfaceVariant)
+            Text(p1Text, style = MaterialTheme.typography.bodySmall.copy(fontWeight = if (v1IsCheaper) FontWeight.Bold else FontWeight.Normal), color = if (v1IsCheaper) Success else if (v2IsCheaper) Error else OnSurfaceVariant)
         }
         // V2 price
         Box(
-            Modifier.weight(0.3f).clip(RoundedCornerShape(6.dp))
+            Modifier.weight(0.25f).clip(RoundedCornerShape(6.dp))
                 .background(if (v2IsCheaper) Success.copy(alpha = 0.08f) else if (v1IsCheaper) Error.copy(alpha = 0.05f) else Color.Transparent)
-                .padding(vertical = 4.dp, horizontal = 4.dp),
+                .padding(vertical = 4.dp, horizontal = 2.dp),
             contentAlignment = Alignment.CenterEnd
         ) {
-            Text(p2Text, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = if (v2IsCheaper) FontWeight.Bold else FontWeight.Normal), color = if (v2IsCheaper) Success else if (v1IsCheaper) Error else OnSurfaceVariant)
+            Text(p2Text, style = MaterialTheme.typography.bodySmall.copy(fontWeight = if (v2IsCheaper) FontWeight.Bold else FontWeight.Normal), color = if (v2IsCheaper) Success else if (v1IsCheaper) Error else OnSurfaceVariant)
         }
         // Diff column
         Text(
@@ -210,6 +211,14 @@ fun CompareRowWithDiff(weight: String, v1Price: Long?, v2Price: Long?) {
             style = MaterialTheme.typography.labelMedium,
             color = Outline,
             modifier = Modifier.weight(0.25f),
+            textAlign = TextAlign.End
+        )
+        // Winner column
+        Text(
+            if (v1IsCheaper) v1Name.take(3).uppercase() else if (v2IsCheaper) v2Name.take(3).uppercase() else "-",
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+            color = if (hasBoth && v1Price != v2Price) Success else Outline,
+            modifier = Modifier.weight(0.10f),
             textAlign = TextAlign.End
         )
     }

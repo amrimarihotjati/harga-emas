@@ -245,6 +245,9 @@ fun VendorTableSection(allPrices: List<PriceInfo>) {
         }
 
         Spacer(Modifier.height(16.dp))
+        
+        Text("Harga Emas $selectedName", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = OnSurface)
+        Spacer(Modifier.height(8.dp))
 
         // Price Table Card
         val vendorPrices = allPrices.filter { it.unit == selectedVendor }

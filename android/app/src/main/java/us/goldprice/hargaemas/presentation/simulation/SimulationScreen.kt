@@ -71,10 +71,10 @@ fun SimulationScreen(viewModel: MainViewModel, simulationViewModel: SimulationVi
                     val prices = state.data.prices
                     Box(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
                         when (selectedTabIndex) {
-                            0 -> SellSimulationTab(simulationViewModel, prices)
-                            1 -> BuySimulationTab(simulationViewModel, prices)
-                            2 -> BudgetSimulationTab(simulationViewModel, prices)
-                            3 -> TargetSimulationTab(simulationViewModel, prices)
+                            0 -> SellSimulationTab(simulationViewModel, prices, state.data.lastUpdated)
+                            1 -> BuySimulationTab(simulationViewModel, prices, state.data.lastUpdated)
+                            2 -> BudgetSimulationTab(simulationViewModel, prices, state.data.lastUpdated)
+                            3 -> TargetSimulationTab(simulationViewModel, prices, state.data.lastUpdated)
                         }
                     }
                 }
@@ -147,7 +147,7 @@ fun SimResultRow(label: String, value: String, valueColor: Color = OnSurface, bo
 
 // ── Tab 1: Simulasi Jual ────────────────────────────────────
 @Composable
-fun SellSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>) {
+fun SellSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>, lastUpdated: String) {
     val result by viewModel.sellResult.collectAsState()
     val vendors = prices.map { it.unit }.distinct()
     var vendor by remember { mutableStateOf(vendors.firstOrNull() ?: "") }
@@ -157,6 +157,7 @@ fun SellSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>) {
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { SimVendorDropdown(vendor, vendors, expanded, { expanded = it }, { vendor = it }) }
+        item { SimPriceInfoBox(vendor, prices, lastUpdated) }
         item { SimInput(gram, { gram = it }, "Berat Emas (Gram)") }
         item { SimInput(buyPrice, { buyPrice = it }, "Harga Beli per Gram (Rp)") }
         item { SimButton("Hitung Simulasi Jual") { viewModel.calculateSell(gram, buyPrice, vendor, prices) } }
@@ -184,7 +185,7 @@ fun SellSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>) {
 
 // ── Tab 2: Simulasi Beli ────────────────────────────────────
 @Composable
-fun BuySimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>) {
+fun BuySimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>, lastUpdated: String) {
     val result by viewModel.buyResult.collectAsState()
     val vendors = prices.map { it.unit }.distinct()
     var vendor by remember { mutableStateOf(vendors.firstOrNull() ?: "") }
@@ -193,6 +194,7 @@ fun BuySimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>) {
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { SimVendorDropdown(vendor, vendors, expanded, { expanded = it }, { vendor = it }) }
+        item { SimPriceInfoBox(vendor, prices, lastUpdated) }
         item { SimInput(gram, { gram = it }, "Berat Emas (Gram)") }
         item { SimButton("Hitung Estimasi Beli") { viewModel.calculateBuy(gram, vendor, prices) } }
         result?.let { res ->
@@ -211,7 +213,7 @@ fun BuySimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>) {
 
 // ── Tab 3: Simulasi Budget ──────────────────────────────────
 @Composable
-fun BudgetSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>) {
+fun BudgetSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>, lastUpdated: String) {
     val result by viewModel.budgetResult.collectAsState()
     val vendors = prices.map { it.unit }.distinct()
     var vendor by remember { mutableStateOf(vendors.firstOrNull() ?: "") }
@@ -220,6 +222,7 @@ fun BudgetSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>)
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { SimVendorDropdown(vendor, vendors, expanded, { expanded = it }, { vendor = it }) }
+        item { SimPriceInfoBox(vendor, prices, lastUpdated) }
         item { SimInput(budget, { budget = it }, "Budget (Rp)") }
         item { SimButton("Hitung Budget") { viewModel.calculateBudget(budget, vendor, prices) } }
         result?.let { res ->
@@ -237,7 +240,7 @@ fun BudgetSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>)
 
 // ── Tab 4: Simulasi Target ──────────────────────────────────
 @Composable
-fun TargetSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>) {
+fun TargetSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>, lastUpdated: String) {
     val result by viewModel.targetResult.collectAsState()
     val vendors = prices.map { it.unit }.distinct()
     var vendor by remember { mutableStateOf(vendors.firstOrNull() ?: "") }
@@ -246,6 +249,7 @@ fun TargetSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>)
 
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { SimVendorDropdown(vendor, vendors, expanded, { expanded = it }, { vendor = it }) }
+        item { SimPriceInfoBox(vendor, prices, lastUpdated) }
         item { SimInput(targetGram, { targetGram = it }, "Target Gram") }
         item { SimButton("Hitung Dana Target") { viewModel.calculateTarget(targetGram, vendor, prices) } }
         result?.let { res ->
@@ -260,6 +264,34 @@ fun TargetSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>)
     }
 }
 
+
+// ── Shared Price Info Box ──────────────────────────────────
+@Composable
+fun SimPriceInfoBox(vendor: String, prices: List<PriceInfo>, lastUpdated: String) {
+    val oneGramPrice = prices.find { it.unit == vendor && (it.weight == "1" || it.weight == "1.0") }
+    if (oneGramPrice != null) {
+        Card(
+            Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(12.dp),
+            colors = CardDefaults.cardColors(containerColor = PrimaryFixed.copy(alpha = 0.2f)),
+            elevation = CardDefaults.cardElevation(0.dp)
+        ) {
+            Column(Modifier.padding(16.dp)) {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Harga Jual /gram:", style = MaterialTheme.typography.labelMedium, color = OnSurfaceVariant)
+                    Text(formatRp(oneGramPrice.sellPrice), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = Primary)
+                }
+                Spacer(Modifier.height(4.dp))
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Harga Beli /gram:", style = MaterialTheme.typography.labelMedium, color = OnSurfaceVariant)
+                    Text(formatRp(oneGramPrice.buyPrice), style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = OnSurface)
+                }
+                Spacer(Modifier.height(8.dp))
+                Text("Update: $lastUpdated", style = MaterialTheme.typography.labelSmall, color = Outline)
+            }
+        }
+    }
+}
 
 // ── Shared Vendor Dropdown ──────────────────────────────────
 @OptIn(ExperimentalMaterial3Api::class)

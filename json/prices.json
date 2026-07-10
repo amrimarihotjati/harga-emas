@@ -1,5 +1,24 @@
 {
-    "last_updated": "2023-01-01 00:00:00",
+    "last_updated": "2026-07-10 16:11:49",
     "vendor": "Galeri24",
-    "prices": []
+    "prices": [
+        {
+            "weight": "0.5",
+            "unit": "gram",
+            "buy_price": 700000,
+            "sell_price": 680000
+        },
+        {
+            "weight": "1",
+            "unit": "gram",
+            "buy_price": 1400000,
+            "sell_price": 1360000
+        },
+        {
+            "weight": "5",
+            "unit": "gram",
+            "buy_price": 7000000,
+            "sell_price": 6800000
+        }
+    ]
 }

@@ -4,6 +4,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
@@ -165,8 +166,18 @@ fun SellSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>, l
     var gram by remember { mutableStateOf("") }
     var buyPrice by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
+    val listState = rememberLazyListState()
 
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LaunchedEffect(result) {
+        if (result != null) {
+            kotlinx.coroutines.delay(100)
+            if (listState.layoutInfo.totalItemsCount > 0) {
+                listState.animateScrollToItem(listState.layoutInfo.totalItemsCount - 1)
+            }
+        }
+    }
+
+    LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { SimVendorDropdown(vendor, vendors, expanded, { expanded = it }, { vendor = it }) }
         item { SimPriceInfoBox(vendor, prices, lastUpdated) }
         item { SimInput(gram, { gram = it }, "Berat Emas (Gram)") }
@@ -211,8 +222,18 @@ fun BuySimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>, la
     var vendor by remember { mutableStateOf(vendors.firstOrNull() ?: "") }
     var gram by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
+    val listState = rememberLazyListState()
 
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LaunchedEffect(result) {
+        if (result != null) {
+            kotlinx.coroutines.delay(100)
+            if (listState.layoutInfo.totalItemsCount > 0) {
+                listState.animateScrollToItem(listState.layoutInfo.totalItemsCount - 1)
+            }
+        }
+    }
+
+    LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { SimVendorDropdown(vendor, vendors, expanded, { expanded = it }, { vendor = it }) }
         item { SimPriceInfoBox(vendor, prices, lastUpdated) }
         item { SimInput(gram, { gram = it }, "Rencana Pembelian (Gram)") }
@@ -248,8 +269,18 @@ fun BudgetSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>,
     var vendor by remember { mutableStateOf(vendors.firstOrNull() ?: "") }
     var budget by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
+    val listState = rememberLazyListState()
 
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LaunchedEffect(result) {
+        if (result != null) {
+            kotlinx.coroutines.delay(100)
+            if (listState.layoutInfo.totalItemsCount > 0) {
+                listState.animateScrollToItem(listState.layoutInfo.totalItemsCount - 1)
+            }
+        }
+    }
+
+    LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { SimVendorDropdown(vendor, vendors, expanded, { expanded = it }, { vendor = it }) }
         item { SimPriceInfoBox(vendor, prices, lastUpdated) }
         item { SimInput(budget, { budget = it }, "Budget Tersedia (Rp)", isCurrency = true) }
@@ -284,8 +315,18 @@ fun TargetSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>,
     var vendor by remember { mutableStateOf(vendors.firstOrNull() ?: "") }
     var targetGram by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
+    val listState = rememberLazyListState()
 
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+    LaunchedEffect(result) {
+        if (result != null) {
+            kotlinx.coroutines.delay(100)
+            if (listState.layoutInfo.totalItemsCount > 0) {
+                listState.animateScrollToItem(listState.layoutInfo.totalItemsCount - 1)
+            }
+        }
+    }
+
+    LazyColumn(state = listState, modifier = Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { SimVendorDropdown(vendor, vendors, expanded, { expanded = it }, { vendor = it }) }
         item { SimPriceInfoBox(vendor, prices, lastUpdated) }
         item { SimInput(targetGram, { targetGram = it }, "Target (Gram)") }

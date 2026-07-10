@@ -121,7 +121,7 @@ fun PortfolioScreen(viewModel: MainViewModel, simulationViewModel: SimulationVie
                                         )
                                         OutlinedTextField(
                                             value = buyPrice, onValueChange = { buyPrice = it.replace(Regex("[^0-9]"), "") },
-                                            label = { Text("Harga Beli (Rp)") },
+                                            label = { Text("Total Harga Beli (Rp)") },
                                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                             visualTransformation = us.goldprice.hargaemas.presentation.components.ThousandsSeparatorVisualTransformation(),
                                             modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp),
@@ -129,6 +129,11 @@ fun PortfolioScreen(viewModel: MainViewModel, simulationViewModel: SimulationVie
                                             singleLine = true
                                         )
                                     }
+                                    Text(
+                                        "Masukkan total keseluruhan uang yang Anda keluarkan saat membeli emas ini.",
+                                        style = MaterialTheme.typography.bodySmall, color = OutlineVariant,
+                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 4.dp)
+                                    )
 
                                     Button(
                                         onClick = {
@@ -197,7 +202,7 @@ fun PortfolioScreen(viewModel: MainViewModel, simulationViewModel: SimulationVie
                                         }
                                         Spacer(Modifier.height(8.dp))
                                         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                                            Text("Modal: ${formatRp((asset.gram * asset.buyPricePerGram).toLong())}", style = MaterialTheme.typography.labelMedium, color = Outline)
+                                            Text("Modal: ${formatRp(asset.totalBuyPrice)}", style = MaterialTheme.typography.labelMedium, color = Outline)
                                             assetResult?.let {
                                                 Text(
                                                     "P/L: ${formatRp(it.profitLoss)}",

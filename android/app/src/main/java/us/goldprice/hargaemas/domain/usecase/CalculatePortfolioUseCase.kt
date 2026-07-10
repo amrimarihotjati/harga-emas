@@ -5,7 +5,7 @@ import us.goldprice.hargaemas.domain.PriceInfo
 data class PortfolioAsset(
     val vendorUnit: String,
     val gram: Double,
-    val buyPricePerGram: Long
+    val totalBuyPrice: Long
 )
 
 data class PortfolioAssetResult(
@@ -41,7 +41,7 @@ class CalculatePortfolioUseCase {
                 
             val currentSellPrice = currentPriceInfo?.buyPrice ?: 0L // User sells, vendor buys
             
-            val capital = (asset.gram * asset.buyPricePerGram).toLong()
+            val capital = asset.totalBuyPrice
             val currentVal = (asset.gram * currentSellPrice).toLong()
             val profitLoss = currentVal - capital
             

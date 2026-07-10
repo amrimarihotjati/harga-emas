@@ -5,6 +5,8 @@ import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
@@ -40,7 +42,7 @@ fun CompareScreen(viewModel: MainViewModel) {
     var expanded2 by remember { mutableStateOf(false) }
 
     Box(Modifier.fillMaxSize().background(Background)) {
-        Column(Modifier.fillMaxSize()) {
+        Column(Modifier.fillMaxSize().verticalScroll(rememberScrollState())) {
             PageHeader("Bandingkan", "Pilih 2 vendor untuk membandingkan harga")
 
             when (val state = uiState) {
@@ -92,9 +94,8 @@ fun CompareScreen(viewModel: MainViewModel) {
                                 Text("Selisih", style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold), color = OnSurface, modifier = Modifier.weight(0.25f), textAlign = TextAlign.End)
                             }
 
-                            LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
-                                items(commonWeights.size) { index ->
-                                    val weight = commonWeights[index]
+                            Column(Modifier.fillMaxWidth().padding(bottom = 24.dp)) {
+                                commonWeights.forEachIndexed { index, weight ->
                                     val p1 = v1Prices[weight]?.sellPrice
                                     val p2 = v2Prices[weight]?.sellPrice
                                     CompareRowWithDiff(weight, p1, p2, v1Name, v2Name)

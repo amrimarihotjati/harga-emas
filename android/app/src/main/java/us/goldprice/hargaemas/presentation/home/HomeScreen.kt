@@ -22,12 +22,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import us.goldprice.hargaemas.R
 import us.goldprice.hargaemas.domain.PriceInfo
 import us.goldprice.hargaemas.presentation.MainUiState
 import us.goldprice.hargaemas.presentation.MainViewModel
@@ -92,18 +92,20 @@ fun HomeScreen(
                 }
                 is MainUiState.Success -> {
                     val data = state.data
-                    val allPrices = data.prices.filter { it.weight == "1" } // Default to 1 gram for summary
+                    val allPrices = data.prices
+                    val oneGramPrices = allPrices.filter { it.weight == "1" || it.weight == "1.0" }
+                    val allVendors = oneGramPrices.map { it.unit.replace(Regex("(?i)gram - "), "").trim() }.distinct()
                     
-                    if (allPrices.isNotEmpty()) {
-                        // Ringkasan Pasar
+                    if (oneGramPrices.isNotEmpty()) {
+                        // Ringkasan Pasar (Only 1 gram data)
                         item {
-                            MarketSummarySection(allPrices)
+                            MarketSummarySection(oneGramPrices)
                         }
                         
                         // Simulasi Cepat
                         item {
                             QuickSimulationSection(
-                                samplePrice = allPrices.firstOrNull(),
+                                samplePrice = oneGramPrices.firstOrNull(),
                                 onNavigate = onNavigateToSimulation
                             )
                         }
@@ -116,15 +118,18 @@ fun HomeScreen(
                                 selectedFilter = selectedFilter,
                                 onFilterChange = { selectedFilter = it },
                                 onSortClick = { showSortSheet = true },
-                                vendors = allPrices.map { it.unit.replace(Regex("(?i)gram - "), "").trim() }.distinct()
+                                vendors = allVendors
                             )
                         }
                         
-                        // Daftar Harga Sesuai Permintaan (Single Card List)
-                        val filteredAndSorted = processPrices(allPrices, searchQuery, selectedFilter, selectedSort)
+                        // Daftar Harga Vendor
+                        val groupedPrices = allPrices.groupBy { it.unit.replace(Regex("(?i)gram - "), "").trim() }
+                        val sortedVendors = processVendors(groupedPrices, oneGramPrices, searchQuery, selectedFilter, selectedSort)
                         
-                        item {
-                            PriceListTableCard(filteredAndSorted)
+                        items(sortedVendors.size) { index ->
+                            val vendorName = sortedVendors[index]
+                            val vendorPrices = groupedPrices[vendorName] ?: emptyList()
+                            VendorPriceTableCard(vendorName, vendorPrices)
                         }
                     }
                 }
@@ -134,7 +139,7 @@ fun HomeScreen(
         if (showSortSheet) {
             ModalBottomSheet(onDismissRequest = { showSortSheet = false }, containerColor = Surface) {
                 Column(modifier = Modifier.padding(16.dp).padding(bottom = 32.dp)) {
-                    Text("Urutkan Berdasarkan", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                    Text("Urutkan Berdasarkan (1 Gram)", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
                     Spacer(modifier = Modifier.height(16.dp))
                     sortOptions.forEach { opt ->
                         Row(
@@ -155,23 +160,38 @@ fun HomeScreen(
     }
 }
 
-fun processPrices(prices: List<PriceInfo>, search: String, filter: String, sort: String): List<PriceInfo> {
-    var result = prices
+fun processVendors(
+    groupedPrices: Map<String, List<PriceInfo>>,
+    oneGramPrices: List<PriceInfo>,
+    search: String,
+    filter: String,
+    sort: String
+): List<String> {
+    var vendors = groupedPrices.keys.toList()
+    
     if (filter != "Semua") {
-        result = result.filter { it.unit.contains(filter, ignoreCase = true) }
+        vendors = vendors.filter { it.contains(filter, ignoreCase = true) }
     }
     if (search.isNotEmpty()) {
-        result = result.filter { it.unit.contains(search, ignoreCase = true) }
+        vendors = vendors.filter { it.contains(search, ignoreCase = true) }
     }
-    result = when (sort) {
-        "Termurah" -> result.sortedBy { it.sellPrice }
-        "Tertinggi" -> result.sortedByDescending { it.sellPrice }
-        "Kenaikan Terbesar" -> result.sortedByDescending { if(it.trend == "up") it.changeNominal else -it.changeNominal }
-        "Penurunan Terbesar" -> result.sortedByDescending { if(it.trend == "down") it.changeNominal else -it.changeNominal }
-        "Nama Vendor" -> result.sortedBy { it.unit }
-        else -> result
+    
+    // Create a map of 1 gram prices for sorting
+    val oneGramMap = oneGramPrices.associateBy { it.unit.replace(Regex("(?i)gram - "), "").trim() }
+    
+    vendors = when (sort) {
+        "Termurah" -> vendors.sortedBy { oneGramMap[it]?.sellPrice ?: Long.MAX_VALUE }
+        "Tertinggi" -> vendors.sortedByDescending { oneGramMap[it]?.sellPrice ?: 0L }
+        "Kenaikan Terbesar" -> vendors.sortedByDescending { 
+            val p = oneGramMap[it]; if (p?.trend == "up") p.changeNominal else -(p?.changeNominal ?: 0L) 
+        }
+        "Penurunan Terbesar" -> vendors.sortedByDescending { 
+            val p = oneGramMap[it]; if (p?.trend == "down") p.changeNominal else -(p?.changeNominal ?: 0L) 
+        }
+        "Nama Vendor" -> vendors.sorted()
+        else -> vendors
     }
-    return result
+    return vendors
 }
 
 @Composable
@@ -219,7 +239,7 @@ fun MarketSummarySection(prices: List<PriceInfo>) {
 
     Column(modifier = Modifier.padding(bottom = 16.dp)) {
         Text(
-            text = "Ringkasan Pasar",
+            text = "Ringkasan Pasar (1 Gram)",
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
             modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
         )
@@ -397,9 +417,40 @@ fun SearchAndFilterSection(
     }
 }
 
+fun getVendorIcon(vendorName: String): Int? {
+    val name = vendorName.lowercase(Locale.ROOT).replace(" ", "_").replace("-", "_")
+    return when (name) {
+        "antam" -> R.drawable.ic_vendor_antam
+        "antam_mulia_retro" -> R.drawable.ic_vendor_antam_mulia_retro
+        "antam_non_pegadaian" -> R.drawable.ic_vendor_antam_non_pegadaian
+        "baby_galeri_24" -> R.drawable.ic_vendor_baby_galeri_24
+        "baby_series_investasi" -> R.drawable.ic_vendor_baby_series_investasi
+        "baby_series_tumbuhan" -> R.drawable.ic_vendor_baby_series_tumbuhan
+        "batik_series" -> R.drawable.ic_vendor_batik_series
+        "dinar_g24" -> R.drawable.ic_vendor_dinar_g24
+        "galeri_24" -> R.drawable.ic_vendor_galeri_24
+        "lotus_archi" -> R.drawable.ic_vendor_lotus_archi
+        "lotus_archi_gift" -> R.drawable.ic_vendor_lotus_archi_gift
+        "sentra_buyback" -> R.drawable.ic_vendor_sentra_buyback
+        "ubs" -> R.drawable.ic_vendor_ubs
+        "ubs_anna" -> R.drawable.ic_vendor_ubs_anna
+        "ubs_disney" -> R.drawable.ic_vendor_ubs_disney
+        "ubs_elsa" -> R.drawable.ic_vendor_ubs_elsa
+        "ubs_hello_kitty" -> R.drawable.ic_vendor_ubs_hello_kitty
+        "ubs_mickey_fullbody" -> R.drawable.ic_vendor_ubs_mickey_fullbody
+        else -> null
+    }
+}
+
 @Composable
-fun PriceListTableCard(prices: List<PriceInfo>) {
+fun VendorPriceTableCard(vendorName: String, prices: List<PriceInfo>) {
     if (prices.isEmpty()) return
+    
+    val formatRp = NumberFormat.getNumberInstance(Locale("id", "ID")).apply { maximumFractionDigits = 0 }
+    val resId = getVendorIcon(vendorName)
+    
+    // Urutkan berat secara numerik
+    val sortedPrices = prices.sortedBy { it.weight.toDoubleOrNull() ?: 0.0 }
     
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
@@ -407,89 +458,65 @@ fun PriceListTableCard(prices: List<PriceInfo>) {
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         shape = RoundedCornerShape(16.dp)
     ) {
-        Column(modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 8.dp)) {
+        Column(modifier = Modifier.fillMaxWidth().padding(16.dp)) {
+            // Vendor Header
+            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(bottom = 12.dp)) {
+                if (resId != null) {
+                    Image(painterResource(resId), contentDescription = vendorName, modifier = Modifier.size(32.dp).clip(CircleShape))
+                } else {
+                    Box(modifier = Modifier.size(32.dp).clip(CircleShape).background(Secondary), contentAlignment = Alignment.Center) {
+                        Text(vendorName.take(1), color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(vendorName, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = Primary)
+            }
+            
+            Divider(color = Color.LightGray.copy(alpha = 0.5f), thickness = 1.dp)
+            
             // Table Header
             Row(
-                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                modifier = Modifier.fillMaxWidth().background(Color.LightGray.copy(alpha = 0.1f)).padding(vertical = 8.dp),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Vendor", style = MaterialTheme.typography.labelMedium, color = Color.Gray, modifier = Modifier.weight(1.5f))
-                Text("Beli", style = MaterialTheme.typography.labelMedium, color = Color.Gray, modifier = Modifier.weight(1f), textAlign = TextAlign.End)
-                Text("Jual", style = MaterialTheme.typography.labelMedium, color = Color.Gray, modifier = Modifier.weight(1f), textAlign = TextAlign.End)
-                Text("Selisih", style = MaterialTheme.typography.labelMedium, color = Color.Gray, modifier = Modifier.weight(1f), textAlign = TextAlign.End)
+                Text("Berat", style = MaterialTheme.typography.labelMedium, color = Color.Gray, modifier = Modifier.weight(0.5f))
+                Text("Harga Jual", style = MaterialTheme.typography.labelMedium, color = Color.Gray, modifier = Modifier.weight(1f), textAlign = TextAlign.End)
+                Text("Harga Buyback", style = MaterialTheme.typography.labelMedium, color = Color.Gray, modifier = Modifier.weight(1f), textAlign = TextAlign.End)
             }
+            
             Divider(color = Color.LightGray.copy(alpha = 0.5f), thickness = 1.dp)
             
             // Table Rows
-            prices.forEachIndexed { index, priceInfo ->
-                PriceTableRow(priceInfo)
-                if (index < prices.size - 1) {
-                    Divider(color = Color.LightGray.copy(alpha = 0.5f), thickness = 1.dp, modifier = Modifier.padding(horizontal = 16.dp))
+            sortedPrices.forEachIndexed { index, price ->
+                Row(
+                    modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = "${price.weight}g",
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        color = Primary,
+                        modifier = Modifier.weight(0.5f)
+                    )
+                    Text(
+                        text = formatRp.format(price.sellPrice),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                        color = Primary,
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.End
+                    )
+                    Text(
+                        text = formatRp.format(price.buyPrice),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = Color.DarkGray,
+                        modifier = Modifier.weight(1f),
+                        textAlign = TextAlign.End
+                    )
+                }
+                if (index < sortedPrices.size - 1) {
+                    Divider(color = Color.LightGray.copy(alpha = 0.3f), thickness = 1.dp)
                 }
             }
-        }
-    }
-}
-
-@Composable
-fun PriceTableRow(priceInfo: PriceInfo) {
-    val formatRp = NumberFormat.getNumberInstance(Locale("id", "ID")).apply { maximumFractionDigits = 0 }
-    val context = LocalContext.current
-    
-    val vendorName = priceInfo.unit.replace(Regex("(?i)gram - "), "").trim()
-    val safeName = vendorName.lowercase(Locale.ROOT).replace(" ", "_").replace("-", "_")
-    val resId = remember(safeName) { context.resources.getIdentifier("ic_vendor_$safeName", "drawable", context.packageName) }
-    
-    val trendColor = if(priceInfo.trend == "up") UpTrend else if(priceInfo.trend == "down") DownTrend else Color.Gray
-    val trendSign = if(priceInfo.trend == "up") "▲" else if(priceInfo.trend == "down") "▼" else "-"
-    
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        // Vendor Column (Icon + Name)
-        Row(modifier = Modifier.weight(1.5f), verticalAlignment = Alignment.CenterVertically) {
-            if (resId != 0) {
-                Image(painterResource(resId), contentDescription = null, modifier = Modifier.size(24.dp).clip(CircleShape))
-            } else {
-                Box(modifier = Modifier.size(24.dp).clip(CircleShape).background(Secondary), contentAlignment = Alignment.Center) {
-                    Text(vendorName.take(1), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp)
-                }
-            }
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                vendorName, 
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), 
-                color = Primary,
-                maxLines = 1
-            )
-        }
-        
-        // Beli Column
-        Text(
-            formatRp.format(priceInfo.sellPrice), 
-            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), 
-            modifier = Modifier.weight(1f), 
-            textAlign = TextAlign.End,
-            color = Primary
-        )
-        
-        // Jual Column
-        Text(
-            formatRp.format(priceInfo.buyPrice), 
-            style = MaterialTheme.typography.bodySmall, 
-            modifier = Modifier.weight(1f), 
-            textAlign = TextAlign.End,
-            color = Color.DarkGray
-        )
-        
-        // Selisih Column
-        Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                "$trendSign${formatRp.format(priceInfo.changeNominal)}", 
-                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), 
-                color = trendColor
-            )
         }
     }
 }

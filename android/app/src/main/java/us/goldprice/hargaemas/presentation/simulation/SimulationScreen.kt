@@ -31,66 +31,79 @@ fun SimulationScreen(viewModel: MainViewModel, simulationViewModel: SimulationVi
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabs = listOf("Jual", "Beli", "Budget", "Target", "Portofolio")
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Background)
-    ) {
-        // Header
+    Scaffold(
+        containerColor = Background
+    ) { innerPadding ->
         Column(
             modifier = Modifier
-                .fillMaxWidth()
-                .background(Primary)
-                .padding(top = 48.dp, start = 16.dp, end = 16.dp, bottom = 16.dp)
+                .fillMaxSize()
+                .padding(innerPadding)
         ) {
-            Text(
-                text = "Simulasi Emas",
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
+            // Header (Harmonized with Home)
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 48.dp, start = 20.dp, end = 20.dp, bottom = 16.dp)
+            ) {
+                Text(
+                    text = "Simulasi Emas",
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, color = Primary)
                 )
-            )
-        }
-
-        ScrollableTabRow(
-            selectedTabIndex = selectedTabIndex,
-            containerColor = Primary,
-            contentColor = Color.White,
-            edgePadding = 16.dp,
-            indicator = { tabPositions ->
-                TabRowDefaults.SecondaryIndicator(
-                    modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
-                    color = Secondary
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(
+                    text = "Perhitungkan nilai aset dan target Anda",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = Color.Gray
                 )
             }
-        ) {
-            tabs.forEachIndexed { index, title ->
-                Tab(
-                    selected = selectedTabIndex == index,
-                    onClick = { selectedTabIndex = index },
-                    text = { Text(title, fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal) }
-                )
-            }
-        }
 
-        when (val state = uiState) {
-            is MainUiState.Success -> {
-                val data = state.data
-                val prices = data.prices
-                
-                Box(modifier = Modifier.fillMaxSize().padding(16.dp)) {
-                    when (selectedTabIndex) {
-                        0 -> SellSimulationTab(simulationViewModel, prices)
-                        1 -> BuySimulationTab(simulationViewModel, prices)
-                        2 -> BudgetSimulationTab(simulationViewModel, prices)
-                        3 -> TargetSimulationTab(simulationViewModel, prices)
-                        4 -> PortfolioSimulationTab(simulationViewModel, prices)
-                    }
+            ScrollableTabRow(
+                selectedTabIndex = selectedTabIndex,
+                containerColor = Background,
+                contentColor = Primary,
+                edgePadding = 20.dp,
+                divider = {},
+                indicator = { tabPositions ->
+                    TabRowDefaults.SecondaryIndicator(
+                        modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
+                        color = Secondary
+                    )
+                }
+            ) {
+                tabs.forEachIndexed { index, title ->
+                    Tab(
+                        selected = selectedTabIndex == index,
+                        onClick = { selectedTabIndex = index },
+                        text = { 
+                            Text(
+                                title, 
+                                fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal,
+                                color = if (selectedTabIndex == index) Primary else Color.Gray
+                            ) 
+                        }
+                    )
                 }
             }
-            else -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Text("Memuat data...", color = Color.Gray)
+
+            when (val state = uiState) {
+                is MainUiState.Success -> {
+                    val data = state.data
+                    val prices = data.prices
+                    
+                    Box(modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 16.dp)) {
+                        when (selectedTabIndex) {
+                            0 -> SellSimulationTab(simulationViewModel, prices)
+                            1 -> BuySimulationTab(simulationViewModel, prices)
+                            2 -> BudgetSimulationTab(simulationViewModel, prices)
+                            3 -> TargetSimulationTab(simulationViewModel, prices)
+                            4 -> PortfolioSimulationTab(simulationViewModel, prices)
+                        }
+                    }
+                }
+                else -> {
+                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                        CircularProgressIndicator(color = Primary)
+                    }
                 }
             }
         }
@@ -119,7 +132,9 @@ fun SellSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>) {
             value = gram, onValueChange = { gram = it },
             label = { Text("Berat Emas (Gram)") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Surface, unfocusedContainerColor = Surface)
         )
         Spacer(modifier = Modifier.height(16.dp))
         
@@ -127,7 +142,9 @@ fun SellSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>) {
             value = buyPrice, onValueChange = { buyPrice = it },
             label = { Text("Harga Beli (Per Gram)") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Surface, unfocusedContainerColor = Surface)
         )
         Spacer(modifier = Modifier.height(24.dp))
         
@@ -146,10 +163,10 @@ fun SellSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>) {
                 ResultRow("Status", it.status, if (it.profitLoss > 0) Success else if (it.profitLoss < 0) Error else Color.Gray)
                 ResultRow("Harga Beli (Input)", formatRp(it.buyPriceInput))
                 ResultRow("Harga Jual Hari Ini", formatRp(it.sellPriceToday))
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color.LightGray.copy(alpha = 0.5f))
                 ResultRow("Total Modal", formatRp(it.capitalValue))
                 ResultRow("Nilai Jual", formatRp(it.sellValue))
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color.LightGray.copy(alpha = 0.5f))
                 ResultRow("Keuntungan / Kerugian", "${formatRp(it.profitLoss)} (${String.format(Locale.US, "%.2f", it.profitPercentage)}%)", if (it.profitLoss > 0) Success else if (it.profitLoss < 0) Error else Color.Gray)
             }
         }
@@ -177,7 +194,9 @@ fun BuySimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>) {
             value = gram, onValueChange = { gram = it },
             label = { Text("Berat Emas (Gram)") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Surface, unfocusedContainerColor = Surface)
         )
         
         Spacer(modifier = Modifier.height(24.dp))
@@ -197,7 +216,7 @@ fun BuySimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>) {
                 ResultRow("Harga per Gram", formatRp(it.pricePerGram))
                 ResultRow("Subtotal", formatRp(it.subtotal))
                 ResultRow("Pajak & Admin", formatRp(it.tax + it.adminFee))
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color.LightGray.copy(alpha = 0.5f))
                 ResultRow("Grand Total", formatRp(it.grandTotal), Primary, true)
             }
         }
@@ -225,7 +244,9 @@ fun BudgetSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>)
             value = budget, onValueChange = { budget = it },
             label = { Text("Budget (Rp)") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Surface, unfocusedContainerColor = Surface)
         )
         
         Spacer(modifier = Modifier.height(24.dp))
@@ -243,7 +264,7 @@ fun BudgetSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>)
         result?.let {
             ResultCard(title = "Hasil Simulasi Budget") {
                 ResultRow("Harga per Gram", formatRp(it.pricePerGram))
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color.LightGray.copy(alpha = 0.5f))
                 ResultRow("Gram yang Didapat", "${it.estimatedGrams} Gram", Primary, true)
                 ResultRow("Sisa Budget", formatRp(it.remainingBudget))
             }
@@ -272,7 +293,9 @@ fun TargetSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>)
             value = targetGram, onValueChange = { targetGram = it },
             label = { Text("Target Gram") },
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier.fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
+            colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Surface, unfocusedContainerColor = Surface)
         )
         
         Spacer(modifier = Modifier.height(24.dp))
@@ -290,7 +313,7 @@ fun TargetSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>)
         result?.let {
             ResultCard(title = "Hasil Simulasi Target") {
                 ResultRow("Harga per Gram", formatRp(it.pricePerGram))
-                HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color.LightGray.copy(alpha = 0.5f))
                 ResultRow("Dana Dibutuhkan", formatRp(it.grandTotal), Primary, true)
             }
         }
@@ -312,12 +335,16 @@ fun PortfolioSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInf
     var buyPrice by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
 
-    LazyColumn(modifier = Modifier.fillMaxSize()) {
+    LazyColumn(
+        modifier = Modifier.fillMaxSize(),
+        contentPadding = PaddingValues(bottom = 32.dp)
+    ) {
         item {
             Card(
                 modifier = Modifier.fillMaxWidth(),
                 colors = CardDefaults.cardColors(containerColor = Surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
+                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+                shape = RoundedCornerShape(16.dp)
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Text("Tambah Aset Portofolio", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Primary)
@@ -329,13 +356,17 @@ fun PortfolioSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInf
                             value = gram, onValueChange = { gram = it },
                             label = { Text("Gram") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Background, unfocusedContainerColor = Background)
                         )
                         OutlinedTextField(
                             value = buyPrice, onValueChange = { buyPrice = it },
                             label = { Text("Harga Beli (Rp)") },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f),
+                            shape = RoundedCornerShape(16.dp),
+                            colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Background, unfocusedContainerColor = Background)
                         )
                     }
                     Spacer(modifier = Modifier.height(16.dp))
@@ -362,7 +393,7 @@ fun PortfolioSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInf
                         ResultRow("Total Gram", "${res.totalGram} Gram", Primary, true)
                         ResultRow("Total Modal", formatRp(res.totalCapital))
                         ResultRow("Nilai Aset Hari Ini", formatRp(res.totalCurrentValue))
-                        HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
+                        Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color.LightGray.copy(alpha = 0.5f))
                         ResultRow("Total Keuntungan", "${formatRp(res.totalProfitLoss)} (${String.format(Locale.US, "%.2f", res.totalProfitPercentage)}%)", if (res.totalProfitLoss >= 0) Success else Error, true)
                     }
                     Spacer(modifier = Modifier.height(16.dp))
@@ -378,18 +409,19 @@ fun PortfolioSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInf
                 
                 Card(
                     modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                    colors = CardDefaults.cardColors(containerColor = Color.White)
+                    colors = CardDefaults.cardColors(containerColor = Surface),
+                    shape = RoundedCornerShape(12.dp)
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(asset.vendorUnit.replace(Regex("(?i)gram - "), "").trim(), fontWeight = FontWeight.Bold)
+                            Text(asset.vendorUnit.replace(Regex("(?i)gram - "), "").trim(), fontWeight = FontWeight.Bold, color = Primary)
                             Text("${asset.gram} Gram", fontWeight = FontWeight.Bold)
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text("Modal: ${formatRp((asset.gram * asset.buyPricePerGram).toLong())}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
                             assetResult?.let {
-                                Text("P/L: ${formatRp(it.profitLoss)}", style = MaterialTheme.typography.bodySmall, color = if(it.profitLoss >= 0) Success else Error)
+                                Text("P/L: ${formatRp(it.profitLoss)}", style = MaterialTheme.typography.bodySmall, color = if(it.profitLoss >= 0) Success else Error, fontWeight = FontWeight.Bold)
                             }
                         }
                     }
@@ -405,7 +437,6 @@ fun PortfolioSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInf
                 ) {
                     Text("Reset Portofolio")
                 }
-                Spacer(modifier = Modifier.height(32.dp))
             }
         }
     }
@@ -434,6 +465,7 @@ fun VendorDropdown(
             label = { Text("Vendor") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier.menuAnchor().fillMaxWidth(),
+            shape = RoundedCornerShape(16.dp),
             colors = OutlinedTextFieldDefaults.colors(
                 focusedContainerColor = Surface,
                 unfocusedContainerColor = Surface
@@ -463,7 +495,7 @@ fun ResultCard(title: String, content: @Composable ColumnScope.() -> Unit) {
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = Surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp)
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
     ) {
         Column(modifier = Modifier.padding(20.dp)) {
             Text(title, style = MaterialTheme.typography.titleMedium, color = Primary, fontWeight = FontWeight.Bold)

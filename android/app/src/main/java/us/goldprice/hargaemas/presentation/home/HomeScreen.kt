@@ -43,11 +43,12 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsState()
 
     Box(Modifier.fillMaxSize().background(Background)) {
-        LazyColumn(
-            modifier = Modifier.fillMaxSize(),
-            contentPadding = PaddingValues(bottom = 24.dp)
-        ) {
-            when (val state = uiState) {
+        Column(Modifier.fillMaxSize()) {
+            LazyColumn(
+                modifier = Modifier.fillMaxWidth().weight(1f),
+                contentPadding = PaddingValues(bottom = 24.dp)
+            ) {
+                when (val state = uiState) {
                 is MainUiState.Loading -> { item { ShimmerPlaceholder() } }
                 is MainUiState.Error -> {
                     item {
@@ -66,24 +67,32 @@ fun HomeScreen(
                         item { PageHeader("Harga Emas", "Pantau harga emas real-time hari ini", data.lastUpdated) }
                         item { SummaryCardsRow(oneGramPrices) }
                         
-                        if (adConfig?.show_native_on_home == true) {
-                            item { 
-                                Spacer(Modifier.height(16.dp))
-                                Box(Modifier.fillMaxWidth().padding(horizontal = 20.dp).clip(RoundedCornerShape(16.dp))) {
-                                    NativeAdViewComposable(context = LocalContext.current, config = adConfig)
-                                }
-                            }
-                        }
-                        
                         item { Spacer(Modifier.height(24.dp)) }
                         item { VendorTableSection(allPrices) }
                         item { Spacer(Modifier.height(24.dp)) }
                         item { SimulatorBanner(onNavigateToSimulation) }
                     }
                 }
+                } // end when
+            } // end LazyColumn
+            
+            // Sticky Native Ad at the bottom
+            if (uiState is MainUiState.Success) {
+                val adConfig = (uiState as MainUiState.Success).adConfig
+                if (adConfig?.show_native_on_home == true) {
+                    Box(
+                        Modifier
+                            .fillMaxWidth()
+                            .background(SurfaceContainerLowest)
+                            .padding(horizontal = 20.dp, vertical = 8.dp)
+                            .clip(RoundedCornerShape(12.dp))
+                    ) {
+                        NativeAdViewComposable(context = LocalContext.current, config = adConfig)
+                    }
+                }
             }
-        }
-    }
+        } // end Column
+    } // end Box
 }
 
 // ── Shared Page Header ──────────────────────────────────────

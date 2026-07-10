@@ -1,7 +1,6 @@
 @file:Suppress("DEPRECATION")
 package us.goldprice.hargaemas.presentation.home
 
-import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -9,7 +8,6 @@ import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -22,14 +20,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import us.goldprice.hargaemas.domain.PriceInfo
@@ -63,7 +59,6 @@ fun HomeScreen(
                 containerColor = Secondary,
                 contentColor = Color.White
             ) {
-                // Using Calculate icon as simulation
                 Icon(Icons.Default.Calculate, contentDescription = "Simulasi")
             }
         },
@@ -107,7 +102,10 @@ fun HomeScreen(
                         
                         // Simulasi Cepat
                         item {
-                            QuickSimulationSection(allPrices.firstOrNull())
+                            QuickSimulationSection(
+                                samplePrice = allPrices.firstOrNull(),
+                                onNavigate = onNavigateToSimulation
+                            )
                         }
                         
                         // Search & Filter
@@ -122,20 +120,11 @@ fun HomeScreen(
                             )
                         }
                         
-                        // Daftar Harga
+                        // Daftar Harga Sesuai Permintaan (Single Card List)
                         val filteredAndSorted = processPrices(allPrices, searchQuery, selectedFilter, selectedSort)
                         
-                        items(filteredAndSorted.size) { index ->
-                            if (index == 2) {
-                                NativeAdPlaceholder()
-                            }
-                            ModernPriceCard(filteredAndSorted[index])
-                        }
-                        
-                        if (filteredAndSorted.size > 7) {
-                            item {
-                                NativeAdPlaceholder()
-                            }
+                        item {
+                            PriceListTableCard(filteredAndSorted)
                         }
                     }
                 }
@@ -222,8 +211,9 @@ fun HeaderSection(onRefresh: () -> Unit) {
 
 @Composable
 fun MarketSummarySection(prices: List<PriceInfo>) {
-    val highestBuy = prices.maxByOrNull { it.sellPrice }
-    val lowestBuy = prices.minByOrNull { it.sellPrice }
+    val validPrices = prices.filter { it.sellPrice > 0 }
+    val highestBuy = validPrices.maxByOrNull { it.sellPrice }
+    val lowestBuy = validPrices.minByOrNull { it.sellPrice }
     
     val formatRp = NumberFormat.getCurrencyInstance(Locale("id", "ID")).apply { maximumFractionDigits = 0 }
 
@@ -318,7 +308,7 @@ fun SummaryCard(
 }
 
 @Composable
-fun QuickSimulationSection(samplePrice: PriceInfo?) {
+fun QuickSimulationSection(samplePrice: PriceInfo?, onNavigate: () -> Unit) {
     if (samplePrice == null) return
     val formatRp = NumberFormat.getCurrencyInstance(Locale("id", "ID")).apply { maximumFractionDigits = 0 }
     
@@ -327,7 +317,8 @@ fun QuickSimulationSection(samplePrice: PriceInfo?) {
     Card(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 20.dp, vertical = 8.dp),
+            .padding(horizontal = 20.dp, vertical = 8.dp)
+            .clickable { onNavigate() },
         colors = CardDefaults.cardColors(containerColor = Surface),
         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
         shape = RoundedCornerShape(16.dp)
@@ -407,14 +398,8 @@ fun SearchAndFilterSection(
 }
 
 @Composable
-fun ModernPriceCard(priceInfo: PriceInfo) {
-    val formatRp = NumberFormat.getCurrencyInstance(Locale("id", "ID")).apply { maximumFractionDigits = 0 }
-    val formatNum = NumberFormat.getNumberInstance(Locale("id", "ID")).apply { maximumFractionDigits = 0 }
-    val context = LocalContext.current
-    
-    val vendorName = priceInfo.unit.replace(Regex("(?i)gram - "), "").trim()
-    val safeName = vendorName.lowercase(Locale.ROOT).replace(" ", "_").replace("-", "_")
-    val resId = remember(safeName) { context.resources.getIdentifier("ic_vendor_$safeName", "drawable", context.packageName) }
+fun PriceListTableCard(prices: List<PriceInfo>) {
+    if (prices.isEmpty()) return
     
     Card(
         modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
@@ -422,101 +407,89 @@ fun ModernPriceCard(priceInfo: PriceInfo) {
         elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
         shape = RoundedCornerShape(16.dp)
     ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
-                if (resId != 0) {
-                    Image(painterResource(resId), contentDescription = null, modifier = Modifier.size(40.dp).clip(CircleShape))
-                } else {
-                    Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(Secondary), contentAlignment = Alignment.Center) {
-                        Text(vendorName.take(1), color = Color.White, fontWeight = FontWeight.Bold)
-                    }
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(vendorName, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = Primary)
-                    Text("1 Gram", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
-                }
-                
-                // Change indicator
-                if (priceInfo.changeNominal != 0L) {
-                    val color = if(priceInfo.trend == "up") UpTrend else DownTrend
-                    val sign = if(priceInfo.trend == "up") "▲" else "▼"
-                    Text("$sign +${formatNum.format(priceInfo.changeNominal)}", color = color, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
-                }
-            }
-            
-            Spacer(modifier = Modifier.height(16.dp))
-            
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
-                Column {
-                    Text("Beli (Harga Vendor)", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                    Text(formatRp.format(priceInfo.sellPrice), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = Primary)
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text("Jual (Buyback)", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
-                    Text(formatRp.format(priceInfo.buyPrice), style = MaterialTheme.typography.bodyMedium, color = Color.DarkGray)
-                }
-                
-                // Dummy Sparkline graph
-                Box(modifier = Modifier.width(80.dp).height(40.dp).padding(bottom = 8.dp)) {
-                    DummySparkline(isUp = priceInfo.trend == "up" || priceInfo.trend == "flat")
-                }
-            }
-        }
-    }
-}
-
-@Composable
-fun DummySparkline(isUp: Boolean) {
-    val color = if(isUp) UpTrend else DownTrend
-    Canvas(modifier = Modifier.fillMaxSize()) {
-        val path = Path()
-        val width = size.width
-        val height = size.height
-        
-        // Random points simulation
-        path.moveTo(0f, height * 0.8f)
-        path.lineTo(width * 0.2f, height * 0.6f)
-        path.lineTo(width * 0.4f, height * 0.7f)
-        path.lineTo(width * 0.6f, height * 0.4f)
-        path.lineTo(width * 0.8f, height * 0.5f)
-        
-        if (isUp) {
-            path.lineTo(width, height * 0.1f)
-        } else {
-            path.lineTo(width, height * 0.9f)
-        }
-        
-        drawPath(
-            path = path,
-            color = color,
-            style = Stroke(width = 3.dp.toPx())
-        )
-    }
-}
-
-@Composable
-fun NativeAdPlaceholder() {
-    Card(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
-        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF9C4)), // Light Yellow
-        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-        shape = RoundedCornerShape(12.dp)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth().padding(16.dp),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Box(
-                modifier = Modifier.size(48.dp).background(Color(0xFFFFD54F), RoundedCornerShape(8.dp)),
-                contentAlignment = Alignment.Center
+        Column(modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 8.dp)) {
+            // Table Header
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 8.dp),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Ad", color = Color.White, fontWeight = FontWeight.Bold)
+                Text("Vendor", style = MaterialTheme.typography.labelMedium, color = Color.Gray, modifier = Modifier.weight(1.5f))
+                Text("Beli", style = MaterialTheme.typography.labelMedium, color = Color.Gray, modifier = Modifier.weight(1f), textAlign = TextAlign.End)
+                Text("Jual", style = MaterialTheme.typography.labelMedium, color = Color.Gray, modifier = Modifier.weight(1f), textAlign = TextAlign.End)
+                Text("Selisih", style = MaterialTheme.typography.labelMedium, color = Color.Gray, modifier = Modifier.weight(1f), textAlign = TextAlign.End)
             }
-            Spacer(modifier = Modifier.width(16.dp))
-            Column {
-                Text("Investasi Pintar 2026", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = Color(0xFFF57F17))
-                Text("Buka tabungan emas digital sekarang dengan promo cashback 50%.", style = MaterialTheme.typography.bodySmall, color = Color.DarkGray)
+            Divider(color = Color.LightGray.copy(alpha = 0.5f), thickness = 1.dp)
+            
+            // Table Rows
+            prices.forEachIndexed { index, priceInfo ->
+                PriceTableRow(priceInfo)
+                if (index < prices.size - 1) {
+                    Divider(color = Color.LightGray.copy(alpha = 0.5f), thickness = 1.dp, modifier = Modifier.padding(horizontal = 16.dp))
+                }
             }
+        }
+    }
+}
+
+@Composable
+fun PriceTableRow(priceInfo: PriceInfo) {
+    val formatRp = NumberFormat.getNumberInstance(Locale("id", "ID")).apply { maximumFractionDigits = 0 }
+    val context = LocalContext.current
+    
+    val vendorName = priceInfo.unit.replace(Regex("(?i)gram - "), "").trim()
+    val safeName = vendorName.lowercase(Locale.ROOT).replace(" ", "_").replace("-", "_")
+    val resId = remember(safeName) { context.resources.getIdentifier("ic_vendor_$safeName", "drawable", context.packageName) }
+    
+    val trendColor = if(priceInfo.trend == "up") UpTrend else if(priceInfo.trend == "down") DownTrend else Color.Gray
+    val trendSign = if(priceInfo.trend == "up") "▲" else if(priceInfo.trend == "down") "▼" else "-"
+    
+    Row(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        // Vendor Column (Icon + Name)
+        Row(modifier = Modifier.weight(1.5f), verticalAlignment = Alignment.CenterVertically) {
+            if (resId != 0) {
+                Image(painterResource(resId), contentDescription = null, modifier = Modifier.size(24.dp).clip(CircleShape))
+            } else {
+                Box(modifier = Modifier.size(24.dp).clip(CircleShape).background(Secondary), contentAlignment = Alignment.Center) {
+                    Text(vendorName.take(1), color = Color.White, fontWeight = FontWeight.Bold, fontSize = 10.sp)
+                }
+            }
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                vendorName, 
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), 
+                color = Primary,
+                maxLines = 1
+            )
+        }
+        
+        // Beli Column
+        Text(
+            formatRp.format(priceInfo.sellPrice), 
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), 
+            modifier = Modifier.weight(1f), 
+            textAlign = TextAlign.End,
+            color = Primary
+        )
+        
+        // Jual Column
+        Text(
+            formatRp.format(priceInfo.buyPrice), 
+            style = MaterialTheme.typography.bodySmall, 
+            modifier = Modifier.weight(1f), 
+            textAlign = TextAlign.End,
+            color = Color.DarkGray
+        )
+        
+        // Selisih Column
+        Row(modifier = Modifier.weight(1f), horizontalArrangement = Arrangement.End, verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                "$trendSign${formatRp.format(priceInfo.changeNominal)}", 
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), 
+                color = trendColor
+            )
         }
     }
 }

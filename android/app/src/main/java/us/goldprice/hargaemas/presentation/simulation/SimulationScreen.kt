@@ -382,7 +382,7 @@ fun PortfolioSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInf
                 ) {
                     Column(modifier = Modifier.padding(12.dp)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(asset.vendorUnit.replace("gram - ", ""), fontWeight = FontWeight.Bold)
+                            Text(asset.vendorUnit.replace(Regex("(?i)gram - "), "").trim(), fontWeight = FontWeight.Bold)
                             Text("${asset.gram} Gram", fontWeight = FontWeight.Bold)
                         }
                         Spacer(modifier = Modifier.height(4.dp))
@@ -428,7 +428,7 @@ fun VendorDropdown(
         onExpandedChange = onExpandedChange
     ) {
         OutlinedTextField(
-            value = selected.replace("gram - ", ""),
+            value = selected.replace(Regex("(?i)gram - "), "").trim(),
             onValueChange = {},
             readOnly = true,
             label = { Text("Vendor") },
@@ -446,7 +446,7 @@ fun VendorDropdown(
         ) {
             vendors.forEach { vendor ->
                 DropdownMenuItem(
-                    text = { Text(vendor.replace("gram - ", "")) },
+                    text = { Text(vendor.replace(Regex("(?i)gram - "), "").trim()) },
                     onClick = {
                         onSelected(vendor)
                         onExpandedChange(false)

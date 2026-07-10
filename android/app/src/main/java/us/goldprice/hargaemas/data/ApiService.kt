@@ -8,7 +8,9 @@ data class AdConfig(
     val native_id: String,
     val interstitial_click_interval: Int,
     val show_native_on_home: Boolean,
-    val show_native_on_compare: Boolean
+    val show_native_on_compare: Boolean,
+    val show_native_on_simulation: Boolean?,
+    val show_native_on_portfolio: Boolean?
 )
 
 interface GoldApiService {

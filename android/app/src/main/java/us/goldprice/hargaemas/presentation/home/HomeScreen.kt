@@ -67,19 +67,20 @@ fun HomeScreen(
                         item { PageHeader("Harga Emas", "Pantau harga emas real-time hari ini", data.lastUpdated) }
                         item { SummaryCardsRow(oneGramPrices) }
                         
-                        item { Spacer(Modifier.height(24.dp)) }
-                        item { VendorTableSection(allPrices) }
-                        item { Spacer(Modifier.height(24.dp)) }
-                        item { SimulatorBanner(onNavigateToSimulation) }
-                        
                         if (adConfig?.show_native_on_home == true) {
                             item {
-                                Spacer(Modifier.height(24.dp))
+                                Spacer(Modifier.height(16.dp))
                                 Box(Modifier.fillMaxWidth().padding(horizontal = 20.dp).clip(RoundedCornerShape(12.dp))) {
                                     NativeAdViewComposable(context = LocalContext.current, config = adConfig)
                                 }
                             }
                         }
+                        
+                        item { Spacer(Modifier.height(24.dp)) }
+                        item { VendorTableSection(allPrices) }
+                        item { Spacer(Modifier.height(24.dp)) }
+                        item { SimulatorBanner(onNavigateToSimulation) }
+                        
                     } // end if
                 } // end is MainUiState.Success
             } // end when

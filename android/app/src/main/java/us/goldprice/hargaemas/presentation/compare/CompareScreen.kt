@@ -49,7 +49,12 @@ fun CompareScreen(viewModel: MainViewModel) {
                     val adConfig = state.adConfig
                     val vendors = data.prices.map { it.unit }.distinct()
 
-                    // Native ad moved to be handled differently to prevent squishing
+                    // Native ad above dropdowns
+                    if (adConfig?.show_native_on_compare == true) {
+                        Box(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(bottom = 16.dp).clip(RoundedCornerShape(12.dp))) {
+                            NativeAdViewComposable(context = LocalContext.current, config = adConfig)
+                        }
+                    }
 
                     // Vendor Selectors with icons
                     Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {

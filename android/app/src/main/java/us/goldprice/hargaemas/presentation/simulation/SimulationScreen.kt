@@ -68,13 +68,14 @@ fun SimulationScreen(viewModel: MainViewModel, simulationViewModel: SimulationVi
 
             when (val state = uiState) {
                 is MainUiState.Success -> {
+                    val adConfig = state.adConfig
                     val prices = state.data.prices
                     Box(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
                         when (selectedTabIndex) {
-                            0 -> SellSimulationTab(simulationViewModel, prices, state.data.lastUpdated)
-                            1 -> BuySimulationTab(simulationViewModel, prices, state.data.lastUpdated)
-                            2 -> BudgetSimulationTab(simulationViewModel, prices, state.data.lastUpdated)
-                            3 -> TargetSimulationTab(simulationViewModel, prices, state.data.lastUpdated)
+                            0 -> SellSimulationTab(simulationViewModel, prices, state.data.lastUpdated, adConfig)
+                            1 -> BuySimulationTab(simulationViewModel, prices, state.data.lastUpdated, adConfig)
+                            2 -> BudgetSimulationTab(simulationViewModel, prices, state.data.lastUpdated, adConfig)
+                            3 -> TargetSimulationTab(simulationViewModel, prices, state.data.lastUpdated, adConfig)
                         }
                     }
                 }
@@ -147,7 +148,7 @@ fun SimResultRow(label: String, value: String, valueColor: Color = OnSurface, bo
 
 // ── Tab 1: Simulasi Jual ────────────────────────────────────
 @Composable
-fun SellSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>, lastUpdated: String) {
+fun SellSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>, lastUpdated: String, adConfig: us.goldprice.hargaemas.data.AdConfig?) {
     val result by viewModel.sellResult.collectAsState()
     val vendors = prices.map { it.unit }.distinct()
     var vendor by remember { mutableStateOf(vendors.firstOrNull() ?: "") }
@@ -161,6 +162,15 @@ fun SellSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>, l
         item { SimInput(gram, { gram = it }, "Berat Emas (Gram)") }
         item { SimInput(buyPrice, { buyPrice = it }, "Harga Beli per Gram (Rp)") }
         item { SimButton("Hitung Simulasi Jual") { viewModel.calculateSell(gram, buyPrice, vendor, prices) } }
+        
+        if (adConfig?.show_native_on_simulation != false) {
+            item {
+                Spacer(Modifier.height(8.dp))
+                Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))) {
+                    us.goldprice.hargaemas.ads.NativeAdViewComposable(context = androidx.compose.ui.platform.LocalContext.current, config = adConfig)
+                }
+            }
+        }
         result?.let { res ->
             item {
                 SimResultCard("Hasil Simulasi Jual") {
@@ -185,7 +195,7 @@ fun SellSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>, l
 
 // ── Tab 2: Simulasi Beli ────────────────────────────────────
 @Composable
-fun BuySimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>, lastUpdated: String) {
+fun BuySimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>, lastUpdated: String, adConfig: us.goldprice.hargaemas.data.AdConfig?) {
     val result by viewModel.buyResult.collectAsState()
     val vendors = prices.map { it.unit }.distinct()
     var vendor by remember { mutableStateOf(vendors.firstOrNull() ?: "") }
@@ -195,8 +205,17 @@ fun BuySimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>, la
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { SimVendorDropdown(vendor, vendors, expanded, { expanded = it }, { vendor = it }) }
         item { SimPriceInfoBox(vendor, prices, lastUpdated) }
-        item { SimInput(gram, { gram = it }, "Berat Emas (Gram)") }
+        item { SimInput(gram, { gram = it }, "Rencana Pembelian (Gram)") }
         item { SimButton("Hitung Estimasi Beli") { viewModel.calculateBuy(gram, vendor, prices) } }
+
+        if (adConfig?.show_native_on_simulation != false) {
+            item {
+                Spacer(Modifier.height(8.dp))
+                Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))) {
+                    us.goldprice.hargaemas.ads.NativeAdViewComposable(context = androidx.compose.ui.platform.LocalContext.current, config = adConfig)
+                }
+            }
+        }
         result?.let { res ->
             item {
                 SimResultCard("Hasil Estimasi Beli") {
@@ -213,7 +232,7 @@ fun BuySimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>, la
 
 // ── Tab 3: Simulasi Budget ──────────────────────────────────
 @Composable
-fun BudgetSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>, lastUpdated: String) {
+fun BudgetSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>, lastUpdated: String, adConfig: us.goldprice.hargaemas.data.AdConfig?) {
     val result by viewModel.budgetResult.collectAsState()
     val vendors = prices.map { it.unit }.distinct()
     var vendor by remember { mutableStateOf(vendors.firstOrNull() ?: "") }
@@ -223,8 +242,17 @@ fun BudgetSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>,
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { SimVendorDropdown(vendor, vendors, expanded, { expanded = it }, { vendor = it }) }
         item { SimPriceInfoBox(vendor, prices, lastUpdated) }
-        item { SimInput(budget, { budget = it }, "Budget (Rp)") }
+        item { SimInput(budget, { budget = it }, "Budget Tersedia (Rp)") }
         item { SimButton("Hitung Budget") { viewModel.calculateBudget(budget, vendor, prices) } }
+
+        if (adConfig?.show_native_on_simulation != false) {
+            item {
+                Spacer(Modifier.height(8.dp))
+                Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))) {
+                    us.goldprice.hargaemas.ads.NativeAdViewComposable(context = androidx.compose.ui.platform.LocalContext.current, config = adConfig)
+                }
+            }
+        }
         result?.let { res ->
             item {
                 SimResultCard("Hasil Simulasi Budget") {
@@ -240,7 +268,7 @@ fun BudgetSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>,
 
 // ── Tab 4: Simulasi Target ──────────────────────────────────
 @Composable
-fun TargetSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>, lastUpdated: String) {
+fun TargetSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>, lastUpdated: String, adConfig: us.goldprice.hargaemas.data.AdConfig?) {
     val result by viewModel.targetResult.collectAsState()
     val vendors = prices.map { it.unit }.distinct()
     var vendor by remember { mutableStateOf(vendors.firstOrNull() ?: "") }
@@ -250,8 +278,17 @@ fun TargetSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>,
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { SimVendorDropdown(vendor, vendors, expanded, { expanded = it }, { vendor = it }) }
         item { SimPriceInfoBox(vendor, prices, lastUpdated) }
-        item { SimInput(targetGram, { targetGram = it }, "Target Gram") }
+        item { SimInput(targetGram, { targetGram = it }, "Target (Gram)") }
         item { SimButton("Hitung Dana Target") { viewModel.calculateTarget(targetGram, vendor, prices) } }
+
+        if (adConfig?.show_native_on_simulation != false) {
+            item {
+                Spacer(Modifier.height(8.dp))
+                Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))) {
+                    us.goldprice.hargaemas.ads.NativeAdViewComposable(context = androidx.compose.ui.platform.LocalContext.current, config = adConfig)
+                }
+            }
+        }
         result?.let { res ->
             item {
                 SimResultCard("Hasil Simulasi Target") {

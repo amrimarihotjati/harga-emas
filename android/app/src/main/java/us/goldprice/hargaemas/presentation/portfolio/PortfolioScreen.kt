@@ -41,6 +41,7 @@ fun PortfolioScreen(viewModel: MainViewModel, simulationViewModel: SimulationVie
             when (val state = uiState) {
                 is MainUiState.Success -> {
                     val prices = state.data.prices
+                    val adConfig = state.adConfig
                     val vendors = prices.map { it.unit }.distinct()
 
                     var vendor by remember { mutableStateOf(vendors.firstOrNull() ?: "") }
@@ -53,6 +54,15 @@ fun PortfolioScreen(viewModel: MainViewModel, simulationViewModel: SimulationVie
                         contentPadding = PaddingValues(bottom = 32.dp),
                         verticalArrangement = Arrangement.spacedBy(12.dp)
                     ) {
+                        // Native ad
+                        if (adConfig?.show_native_on_portfolio != false) {
+                            item {
+                                Box(Modifier.fillMaxWidth().clip(RoundedCornerShape(12.dp))) {
+                                    us.goldprice.hargaemas.ads.NativeAdViewComposable(context = androidx.compose.ui.platform.LocalContext.current, config = adConfig)
+                                }
+                            }
+                        }
+
                         // Add asset form
                         item {
                             Card(

@@ -14,8 +14,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.ui.res.painterResource
+import us.goldprice.hargaemas.presentation.components.getVendorIconRes
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.input.VisualTransformation
 import androidx.compose.ui.unit.dp
 import us.goldprice.hargaemas.domain.PriceInfo
 import us.goldprice.hargaemas.presentation.MainUiState
@@ -91,11 +96,16 @@ fun SimulationScreen(viewModel: MainViewModel, simulationViewModel: SimulationVi
 
 // ── Shared Input Field ──────────────────────────────────────
 @Composable
-fun SimInput(value: String, onValueChange: (String) -> Unit, label: String) {
+fun SimInput(value: String, onValueChange: (String) -> Unit, label: String, isCurrency: Boolean = false) {
     OutlinedTextField(
-        value = value, onValueChange = onValueChange,
+        value = value, 
+        onValueChange = { 
+            if (isCurrency) onValueChange(it.replace(Regex("[^0-9]"), "")) 
+            else onValueChange(it) 
+        },
         label = { Text(label) },
         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        visualTransformation = if (isCurrency) us.goldprice.hargaemas.presentation.components.ThousandsSeparatorVisualTransformation() else VisualTransformation.None,
         modifier = Modifier.fillMaxWidth(),
         shape = RoundedCornerShape(12.dp),
         colors = OutlinedTextFieldDefaults.colors(
@@ -160,7 +170,7 @@ fun SellSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>, l
         item { SimVendorDropdown(vendor, vendors, expanded, { expanded = it }, { vendor = it }) }
         item { SimPriceInfoBox(vendor, prices, lastUpdated) }
         item { SimInput(gram, { gram = it }, "Berat Emas (Gram)") }
-        item { SimInput(buyPrice, { buyPrice = it }, "Harga Beli per Gram (Rp)") }
+        item { SimInput(buyPrice, { buyPrice = it }, "Harga Beli per Gram (Rp)", isCurrency = true) }
         item { SimButton("Hitung Simulasi Jual") { viewModel.calculateSell(gram, buyPrice, vendor, prices) } }
         
         if (adConfig?.show_native_on_simulation != false) {
@@ -242,7 +252,7 @@ fun BudgetSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>,
     LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item { SimVendorDropdown(vendor, vendors, expanded, { expanded = it }, { vendor = it }) }
         item { SimPriceInfoBox(vendor, prices, lastUpdated) }
-        item { SimInput(budget, { budget = it }, "Budget Tersedia (Rp)") }
+        item { SimInput(budget, { budget = it }, "Budget Tersedia (Rp)", isCurrency = true) }
         item { SimButton("Hitung Budget") { viewModel.calculateBudget(budget, vendor, prices) } }
 
         if (adConfig?.show_native_on_simulation != false) {
@@ -346,6 +356,12 @@ fun SimVendorDropdown(
             onValueChange = {},
             readOnly = true,
             label = { Text("Vendor") },
+            leadingIcon = {
+                val iconRes = getVendorIconRes(selected)
+                if (iconRes != null) {
+                    Image(painterResource(iconRes), null, Modifier.size(24.dp).clip(CircleShape))
+                }
+            },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier.menuAnchor().fillMaxWidth(),
             shape = RoundedCornerShape(12.dp),
@@ -364,7 +380,13 @@ fun SimVendorDropdown(
         ) {
             vendors.forEach { vendor ->
                 DropdownMenuItem(
-                    text = { Text(vendor.replace(Regex("(?i)gram - "), "").trim()) },
+                    text = { 
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            val iconRes = getVendorIconRes(vendor)
+                            if (iconRes != null) Image(painterResource(iconRes), null, Modifier.size(20.dp).clip(CircleShape))
+                            Text(vendor.replace(Regex("(?i)gram - "), "").trim()) 
+                        }
+                    },
                     onClick = { onSelected(vendor); onExpandedChange(false) }
                 )
             }

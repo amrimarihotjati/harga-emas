@@ -120,9 +120,10 @@ fun PortfolioScreen(viewModel: MainViewModel, simulationViewModel: SimulationVie
                                             singleLine = true
                                         )
                                         OutlinedTextField(
-                                            value = buyPrice, onValueChange = { buyPrice = it },
+                                            value = buyPrice, onValueChange = { buyPrice = it.replace(Regex("[^0-9]"), "") },
                                             label = { Text("Harga Beli (Rp)") },
                                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                            visualTransformation = us.goldprice.hargaemas.presentation.components.ThousandsSeparatorVisualTransformation(),
                                             modifier = Modifier.weight(1f), shape = RoundedCornerShape(12.dp),
                                             colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = SurfaceContainerLowest, unfocusedContainerColor = SurfaceContainerLowest, focusedBorderColor = Primary, unfocusedBorderColor = OutlineVariant),
                                             singleLine = true

@@ -9,7 +9,7 @@ data class PriceInfo(
     @SerializedName("sell_price") val sellPrice: Long,
     @SerializedName("change_nominal") val changeNominal: Long = 0,
     @SerializedName("change_percentage") val changePercentage: Double = 0.0,
-    @SerializedName("trend") val trend: String = "flat"
+    @SerializedName("trend") val trend: String? = "flat"
 )
 
 data class GoldData(

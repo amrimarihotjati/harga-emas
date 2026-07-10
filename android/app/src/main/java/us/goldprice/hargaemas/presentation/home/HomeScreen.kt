@@ -118,7 +118,7 @@ fun HomeScreen(
                                 selectedFilter = selectedFilter,
                                 onFilterChange = { selectedFilter = it },
                                 onSortClick = { showSortSheet = true },
-                                vendors = allPrices.map { it.unit.replace("gram - ", "") }.distinct()
+                                vendors = allPrices.map { it.unit.replace(Regex("(?i)gram - "), "").trim() }.distinct()
                             )
                         }
                         
@@ -242,9 +242,9 @@ fun MarketSummarySection(prices: List<PriceInfo>) {
                 item {
                     SummaryCard(
                         title = "Harga Tertinggi Hari Ini",
-                        vendor = it.unit.replace("gram - ", ""),
+                        vendor = it.unit.replace(Regex("(?i)gram - "), "").trim(),
                         price = formatRp.format(it.sellPrice),
-                        trend = it.trend,
+                        trend = it.trend ?: "flat",
                         change = it.changeNominal,
                         gradientStart = CardBlueStart,
                         gradientEnd = CardBlueEnd
@@ -255,9 +255,9 @@ fun MarketSummarySection(prices: List<PriceInfo>) {
                 item {
                     SummaryCard(
                         title = "Harga Terendah Hari Ini",
-                        vendor = it.unit.replace("gram - ", ""),
+                        vendor = it.unit.replace(Regex("(?i)gram - "), "").trim(),
                         price = formatRp.format(it.sellPrice),
-                        trend = it.trend,
+                        trend = it.trend ?: "flat",
                         change = it.changeNominal,
                         gradientStart = CardLightBlueStart,
                         gradientEnd = CardLightBlueEnd
@@ -412,7 +412,7 @@ fun ModernPriceCard(priceInfo: PriceInfo) {
     val formatNum = NumberFormat.getNumberInstance(Locale("id", "ID")).apply { maximumFractionDigits = 0 }
     val context = LocalContext.current
     
-    val vendorName = priceInfo.unit.replace("gram - ", "")
+    val vendorName = priceInfo.unit.replace(Regex("(?i)gram - "), "").trim()
     val safeName = vendorName.lowercase(Locale.ROOT).replace(" ", "_").replace("-", "_")
     val resId = remember(safeName) { context.resources.getIdentifier("ic_vendor_$safeName", "drawable", context.packageName) }
     

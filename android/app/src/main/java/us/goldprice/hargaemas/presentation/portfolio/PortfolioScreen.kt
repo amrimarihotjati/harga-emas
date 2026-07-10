@@ -34,8 +34,8 @@ fun PortfolioScreen(viewModel: MainViewModel, simulationViewModel: SimulationVie
     val assets by simulationViewModel.portfolioAssets.collectAsState()
     val result by simulationViewModel.portfolioResult.collectAsState()
 
-    Scaffold(containerColor = Background) { innerPadding ->
-        Column(Modifier.fillMaxSize().padding(innerPadding)) {
+    Box(Modifier.fillMaxSize().background(Background)) {
+        Column(Modifier.fillMaxSize()) {
             PageHeader("Portofolio", "Kelola dan pantau aset emas Anda")
 
             when (val state = uiState) {

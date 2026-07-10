@@ -42,9 +42,9 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
 
-    Scaffold(containerColor = Background) { innerPadding ->
+    Box(Modifier.fillMaxSize().background(Background)) {
         LazyColumn(
-            modifier = Modifier.fillMaxSize().padding(innerPadding),
+            modifier = Modifier.fillMaxSize(),
             contentPadding = PaddingValues(bottom = 24.dp)
         ) {
             when (val state = uiState) {
@@ -89,7 +89,7 @@ fun HomeScreen(
 // ── Shared Page Header ──────────────────────────────────────
 @Composable
 fun PageHeader(title: String, subtitle: String, extra: String = "") {
-    Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(top = 24.dp, bottom = 16.dp)) {
+    Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(top = 8.dp, bottom = 24.dp)) {
         Text(title, style = MaterialTheme.typography.headlineMedium, color = OnSurface)
         Spacer(Modifier.height(4.dp))
         Text(subtitle, style = MaterialTheme.typography.bodyMedium, color = Outline)

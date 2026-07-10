@@ -32,8 +32,8 @@ fun SimulationScreen(viewModel: MainViewModel, simulationViewModel: SimulationVi
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabs = listOf("Jual", "Beli", "Budget", "Target")
 
-    Scaffold(containerColor = Background) { innerPadding ->
-        Column(Modifier.fillMaxSize().padding(innerPadding)) {
+    Box(Modifier.fillMaxSize().background(Background)) {
+        Column(Modifier.fillMaxSize()) {
             // Shared header style (same as Home & Compare)
             PageHeader("Simulasi Emas", "Perhitungkan nilai aset dan target Anda")
 

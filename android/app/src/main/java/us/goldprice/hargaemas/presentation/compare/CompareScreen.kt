@@ -39,8 +39,8 @@ fun CompareScreen(viewModel: MainViewModel) {
     var expanded1 by remember { mutableStateOf(false) }
     var expanded2 by remember { mutableStateOf(false) }
 
-    Scaffold(containerColor = Background) { innerPadding ->
-        Column(Modifier.fillMaxSize().padding(innerPadding)) {
+    Box(Modifier.fillMaxSize().background(Background)) {
+        Column(Modifier.fillMaxSize()) {
             PageHeader("Bandingkan", "Pilih 2 vendor untuk membandingkan harga")
 
             when (val state = uiState) {

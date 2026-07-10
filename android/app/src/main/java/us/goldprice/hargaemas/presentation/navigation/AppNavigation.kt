@@ -92,12 +92,22 @@ fun AppNavigation(viewModel: MainViewModel, simulationViewModel: us.goldprice.ha
     ) { innerPadding ->
         NavHost(navController, startDestination = Screen.Home.route, Modifier.padding(innerPadding)) {
             composable(Screen.Home.route) {
-                HomeScreen(viewModel, onNavigateToSimulation = {
-                    navController.navigate(Screen.Simulation.route) {
-                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
-                        launchSingleTop = true; restoreState = true
+                HomeScreen(
+                    viewModel = viewModel,
+                    simulationViewModel = simulationViewModel,
+                    onNavigateToSimulation = {
+                        navController.navigate(Screen.Simulation.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true; restoreState = true
+                        }
+                    },
+                    onNavigateToPortfolio = {
+                        navController.navigate(Screen.Portfolio.route) {
+                            popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                            launchSingleTop = true; restoreState = true
+                        }
                     }
-                })
+                )
             }
             composable(Screen.Compare.route) { CompareScreen(viewModel) }
             composable(Screen.Simulation.route) { SimulationScreen(viewModel, simulationViewModel) }

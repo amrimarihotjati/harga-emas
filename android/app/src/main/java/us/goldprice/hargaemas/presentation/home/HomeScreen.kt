@@ -38,9 +38,12 @@ import java.util.*
 @Composable
 fun HomeScreen(
     viewModel: MainViewModel,
-    onNavigateToSimulation: () -> Unit = {}
+    simulationViewModel: us.goldprice.hargaemas.presentation.simulation.SimulationViewModel,
+    onNavigateToSimulation: () -> Unit = {},
+    onNavigateToPortfolio: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsState()
+    val portfolioResult by simulationViewModel.portfolioResult.collectAsState()
 
     Box(Modifier.fillMaxSize().background(Background)) {
         Column(Modifier.fillMaxSize()) {
@@ -65,6 +68,15 @@ fun HomeScreen(
 
                     if (oneGramPrices.isNotEmpty()) {
                         item { PageHeader("Harga Emas", "Pantau harga emas real-time hari ini", data.lastUpdated) }
+                        
+                        item {
+                            HomePortfolioCard(
+                                portfolioResult = portfolioResult,
+                                onNavigateToPortfolio = onNavigateToPortfolio
+                            )
+                        }
+                        item { Spacer(Modifier.height(16.dp)) }
+                        
                         item { SummaryCardsRow(oneGramPrices) }
                         
                         if (adConfig?.show_native_on_home == true) {
@@ -88,6 +100,50 @@ fun HomeScreen(
     } // end Column
 } // end Box
 } // end fun HomeScreen
+
+// ── Portfolio Summary Card ──────────────────────────────────
+@Composable
+fun HomePortfolioCard(
+    portfolioResult: us.goldprice.hargaemas.domain.usecase.PortfolioSimulationResult?,
+    onNavigateToPortfolio: () -> Unit
+) {
+    Card(
+        Modifier.fillMaxWidth().padding(horizontal = 20.dp),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = SurfaceContainerLowest),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(Modifier.padding(16.dp)) {
+            Text("Total Emas Kamu", style = MaterialTheme.typography.labelMedium, color = Outline)
+            Spacer(Modifier.height(8.dp))
+            if (portfolioResult != null && portfolioResult.totalCurrentValue > 0) {
+                val formatRp = NumberFormat.getNumberInstance(Locale("id", "ID")).apply { maximumFractionDigits = 0 }
+                val profitLoss = portfolioResult.totalProfitLoss
+                val isUp = profitLoss >= 0
+                val trendColor = if (isUp) Success else Error
+                
+                Text("Rp ${formatRp.format(portfolioResult.totalCurrentValue)}", style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold), color = OnSurface)
+                Spacer(Modifier.height(4.dp))
+                val sign = if (isUp) "+" else ""
+                Text(
+                    "${sign}Rp ${formatRp.format(portfolioResult.totalProfitLoss)} (${String.format(Locale.US, "%.2f%%", portfolioResult.totalProfitPercentage)})",
+                    style = MaterialTheme.typography.labelLarge, color = trendColor
+                )
+            } else {
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+                    Text("Belum ada aset emas", style = MaterialTheme.typography.bodyMedium, color = OnSurfaceVariant, modifier = Modifier.weight(1f))
+                    Button(
+                        onClick = onNavigateToPortfolio,
+                        shape = RoundedCornerShape(12.dp),
+                        colors = ButtonDefaults.buttonColors(containerColor = Primary, contentColor = OnPrimary)
+                    ) {
+                        Text("+ Tambah", fontWeight = FontWeight.Bold)
+                    }
+                }
+            }
+        }
+    }
+}
 
 // ── Shared Page Header ──────────────────────────────────────
 @Composable

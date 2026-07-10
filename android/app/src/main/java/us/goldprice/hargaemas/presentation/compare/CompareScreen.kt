@@ -49,11 +49,7 @@ fun CompareScreen(viewModel: MainViewModel) {
                     val adConfig = state.adConfig
                     val vendors = data.prices.map { it.unit }.distinct()
 
-                    if (adConfig?.show_native_on_compare == true) {
-                        Box(Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp).clip(RoundedCornerShape(16.dp))) {
-                            NativeAdViewComposable(context = LocalContext.current, config = adConfig)
-                        }
-                    }
+                    // Native ad moved to be handled differently to prevent squishing
 
                     // Vendor Selectors with icons
                     Row(Modifier.fillMaxWidth().padding(horizontal = 20.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -94,6 +90,15 @@ fun CompareScreen(viewModel: MainViewModel) {
                             }
 
                             LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
+                                if (adConfig?.show_native_on_compare == true) {
+                                    item {
+                                        Box(Modifier.fillMaxWidth().padding(16.dp).clip(RoundedCornerShape(12.dp))) {
+                                            NativeAdViewComposable(context = LocalContext.current, config = adConfig)
+                                        }
+                                        HorizontalDivider(color = OutlineVariant.copy(alpha = 0.3f))
+                                    }
+                                }
+                                
                                 items(commonWeights.size) { index ->
                                     val weight = commonWeights[index]
                                     val p1 = v1Prices[weight]?.sellPrice
@@ -183,7 +188,7 @@ fun CompareRowWithDiff(weight: String, v1Price: Long?, v2Price: Long?, v1Name: S
     Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp, vertical = 16.dp), verticalAlignment = Alignment.CenterVertically) {
         Text(
             "${weight}g",
-            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
             color = OnSurface,
             modifier = Modifier.weight(0.15f)
         )
@@ -194,7 +199,7 @@ fun CompareRowWithDiff(weight: String, v1Price: Long?, v2Price: Long?, v1Name: S
                 .padding(vertical = 4.dp, horizontal = 2.dp),
             contentAlignment = Alignment.CenterEnd
         ) {
-            Text(p1Text, style = MaterialTheme.typography.bodySmall.copy(fontWeight = if (v1IsCheaper) FontWeight.Bold else FontWeight.Normal), color = if (v1IsCheaper) Success else if (v2IsCheaper) Error else OnSurfaceVariant)
+            Text(p1Text, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = if (v1IsCheaper) FontWeight.Bold else FontWeight.Normal), color = if (v1IsCheaper) Success else if (v2IsCheaper) Error else OnSurfaceVariant)
         }
         // V2 price
         Box(
@@ -203,7 +208,7 @@ fun CompareRowWithDiff(weight: String, v1Price: Long?, v2Price: Long?, v1Name: S
                 .padding(vertical = 4.dp, horizontal = 2.dp),
             contentAlignment = Alignment.CenterEnd
         ) {
-            Text(p2Text, style = MaterialTheme.typography.bodySmall.copy(fontWeight = if (v2IsCheaper) FontWeight.Bold else FontWeight.Normal), color = if (v2IsCheaper) Success else if (v1IsCheaper) Error else OnSurfaceVariant)
+            Text(p2Text, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = if (v2IsCheaper) FontWeight.Bold else FontWeight.Normal), color = if (v2IsCheaper) Success else if (v1IsCheaper) Error else OnSurfaceVariant)
         }
         // Diff column
         Text(

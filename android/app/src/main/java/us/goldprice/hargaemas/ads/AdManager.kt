@@ -32,7 +32,7 @@ import us.goldprice.hargaemas.data.AdConfig
 object AdManager {
     private var interstitialAd: InterstitialAd? = null
     private var isInterstitialLoading = false
-    private var lastInterstitialTime = 0L
+    private var clickCount = 0
 
     // For testing if adConfig doesn't have real IDs or hasn't loaded
     private const val TEST_INTERSTITIAL_ID = "ca-app-pub-3940256099942544/1033173712"
@@ -58,14 +58,14 @@ object AdManager {
     }
 
     fun showInterstitialIfReady(activity: Activity, config: AdConfig?) {
-        val interval = config?.interstitial_interval_seconds ?: 120L
-        val now = System.currentTimeMillis()
-        if (now - lastInterstitialTime > interval * 1000) {
+        val interval = config?.interstitial_click_interval ?: 3
+        clickCount++
+        if (clickCount >= interval) {
             interstitialAd?.let {
                 it.fullScreenContentCallback = object : FullScreenContentCallback() {
                     override fun onAdDismissedFullScreenContent() {
                         interstitialAd = null
-                        lastInterstitialTime = System.currentTimeMillis()
+                        clickCount = 0
                         loadInterstitial(activity, config)
                     }
 

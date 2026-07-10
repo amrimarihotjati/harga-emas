@@ -183,18 +183,14 @@ fun CompareRowWithDiff(weight: String, v1Price: Long?, v2Price: Long?, v1Name: S
         )
         // V1 price
         Box(
-            Modifier.weight(0.3f).clip(RoundedCornerShape(6.dp))
-                .background(if (v1IsCheaper) Success.copy(alpha = 0.15f) else Color.Transparent)
-                .padding(vertical = 4.dp, horizontal = 2.dp),
+            Modifier.weight(0.3f).padding(vertical = 4.dp, horizontal = 2.dp),
             contentAlignment = Alignment.CenterEnd
         ) {
             Text(p1Text, style = MaterialTheme.typography.labelMedium.copy(fontWeight = if (v1IsCheaper) FontWeight.Bold else FontWeight.Normal), color = if (v1IsCheaper) Success else OnSurfaceVariant)
         }
         // V2 price
         Box(
-            Modifier.weight(0.3f).clip(RoundedCornerShape(6.dp))
-                .background(if (v2IsCheaper) Success.copy(alpha = 0.15f) else Color.Transparent)
-                .padding(vertical = 4.dp, horizontal = 2.dp),
+            Modifier.weight(0.3f).padding(vertical = 4.dp, horizontal = 2.dp),
             contentAlignment = Alignment.CenterEnd
         ) {
             Text(p2Text, style = MaterialTheme.typography.labelMedium.copy(fontWeight = if (v2IsCheaper) FontWeight.Bold else FontWeight.Normal), color = if (v2IsCheaper) Success else OnSurfaceVariant)

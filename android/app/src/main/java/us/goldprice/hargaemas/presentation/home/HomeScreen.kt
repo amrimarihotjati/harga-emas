@@ -71,29 +71,22 @@ fun HomeScreen(
                         item { VendorTableSection(allPrices) }
                         item { Spacer(Modifier.height(24.dp)) }
                         item { SimulatorBanner(onNavigateToSimulation) }
-                    }
-                }
-                } // end when
-            } // end LazyColumn
-            
-            // Sticky Native Ad at the bottom
-            if (uiState is MainUiState.Success) {
-                val adConfig = (uiState as MainUiState.Success).adConfig
-                if (adConfig?.show_native_on_home == true) {
-                    Box(
-                        Modifier
-                            .fillMaxWidth()
-                            .background(SurfaceContainerLowest)
-                            .padding(horizontal = 20.dp, vertical = 8.dp)
-                            .clip(RoundedCornerShape(12.dp))
-                    ) {
-                        NativeAdViewComposable(context = LocalContext.current, config = adConfig)
-                    }
-                }
-            }
-        } // end Column
-    } // end Box
-}
+                        
+                        if (adConfig?.show_native_on_home == true) {
+                            item {
+                                Spacer(Modifier.height(24.dp))
+                                Box(Modifier.fillMaxWidth().padding(horizontal = 20.dp).clip(RoundedCornerShape(12.dp))) {
+                                    NativeAdViewComposable(context = LocalContext.current, config = adConfig)
+                                }
+                            }
+                        }
+                    } // end if
+                } // end is MainUiState.Success
+            } // end when
+        } // end LazyColumn
+    } // end Column
+} // end Box
+} // end fun HomeScreen
 
 // ── Shared Page Header ──────────────────────────────────────
 @Composable

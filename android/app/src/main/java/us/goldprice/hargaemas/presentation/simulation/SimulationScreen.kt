@@ -1,18 +1,18 @@
 package us.goldprice.hargaemas.presentation.simulation
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
-import androidx.compose.material3.TabRowDefaults.tabIndicatorOffset
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -20,77 +20,56 @@ import androidx.compose.ui.unit.dp
 import us.goldprice.hargaemas.domain.PriceInfo
 import us.goldprice.hargaemas.presentation.MainUiState
 import us.goldprice.hargaemas.presentation.MainViewModel
+import us.goldprice.hargaemas.presentation.home.PageHeader
 import us.goldprice.hargaemas.theme.*
 import java.text.NumberFormat
 import java.util.Locale
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SimulationScreen(viewModel: MainViewModel, simulationViewModel: SimulationViewModel) {
     val uiState by viewModel.uiState.collectAsState()
-    
     var selectedTabIndex by remember { mutableIntStateOf(0) }
     val tabs = listOf("Jual", "Beli", "Budget", "Target", "Portofolio")
 
-    Scaffold(
-        containerColor = Background
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .padding(innerPadding)
-        ) {
-            // Header (Harmonized with Home)
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(top = 48.dp, start = 20.dp, end = 20.dp, bottom = 16.dp)
-            ) {
-                Text(
-                    text = "Simulasi Emas",
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, color = Primary)
-                )
-                Spacer(modifier = Modifier.height(4.dp))
-                Text(
-                    text = "Perhitungkan nilai aset dan target Anda",
-                    style = MaterialTheme.typography.bodySmall,
-                    color = Color.Gray
-                )
-            }
+    Scaffold(containerColor = Background) { innerPadding ->
+        Column(Modifier.fillMaxSize().padding(innerPadding)) {
+            // Shared header style (same as Home & Compare)
+            PageHeader("Simulasi Emas", "Perhitungkan nilai aset dan target Anda")
 
-            ScrollableTabRow(
-                selectedTabIndex = selectedTabIndex,
-                containerColor = Background,
-                contentColor = Primary,
-                edgePadding = 20.dp,
-                divider = {},
-                indicator = { tabPositions ->
-                    TabRowDefaults.SecondaryIndicator(
-                        modifier = Modifier.tabIndicatorOffset(tabPositions[selectedTabIndex]),
-                        color = Secondary
-                    )
-                }
+            // Tab chips (horizontal scrollable chips instead of TabRow for consistency)
+            Row(
+                Modifier.fillMaxWidth().padding(horizontal = 20.dp).horizontalScroll(rememberScrollState()),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 tabs.forEachIndexed { index, title ->
-                    Tab(
+                    FilterChip(
                         selected = selectedTabIndex == index,
                         onClick = { selectedTabIndex = index },
-                        text = { 
-                            Text(
-                                title, 
-                                fontWeight = if (selectedTabIndex == index) FontWeight.Bold else FontWeight.Normal,
-                                color = if (selectedTabIndex == index) Primary else Color.Gray
-                            ) 
-                        }
+                        label = { Text(title, style = MaterialTheme.typography.labelLarge) },
+                        shape = RoundedCornerShape(12.dp),
+                        colors = FilterChipDefaults.filterChipColors(
+                            selectedContainerColor = Primary,
+                            selectedLabelColor = OnPrimary,
+                            containerColor = SurfaceContainerLowest,
+                            labelColor = OnSurfaceVariant
+                        ),
+                        border = FilterChipDefaults.filterChipBorder(
+                            borderColor = OutlineVariant,
+                            selectedBorderColor = Primary,
+                            enabled = true,
+                            selected = selectedTabIndex == index
+                        )
                     )
                 }
             }
+
+            Spacer(Modifier.height(16.dp))
 
             when (val state = uiState) {
                 is MainUiState.Success -> {
-                    val data = state.data
-                    val prices = data.prices
-                    
-                    Box(modifier = Modifier.fillMaxSize().padding(horizontal = 20.dp, vertical = 16.dp)) {
+                    val prices = state.data.prices
+                    Box(Modifier.fillMaxSize().padding(horizontal = 20.dp)) {
                         when (selectedTabIndex) {
                             0 -> SellSimulationTab(simulationViewModel, prices)
                             1 -> BuySimulationTab(simulationViewModel, prices)
@@ -101,7 +80,7 @@ fun SimulationScreen(viewModel: MainViewModel, simulationViewModel: SimulationVi
                     }
                 }
                 else -> {
-                    Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+                    Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                         CircularProgressIndicator(color = Primary)
                     }
                 }
@@ -110,329 +89,268 @@ fun SimulationScreen(viewModel: MainViewModel, simulationViewModel: SimulationVi
     }
 }
 
-// ---------------------------------------------------------
-// Tab 1: Simulasi Jual
-// ---------------------------------------------------------
-@OptIn(ExperimentalMaterial3Api::class)
+// ── Shared Input Field ──────────────────────────────────────
+@Composable
+fun SimInput(value: String, onValueChange: (String) -> Unit, label: String) {
+    OutlinedTextField(
+        value = value, onValueChange = onValueChange,
+        label = { Text(label) },
+        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+        modifier = Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(12.dp),
+        colors = OutlinedTextFieldDefaults.colors(
+            focusedContainerColor = SurfaceContainerLowest,
+            unfocusedContainerColor = SurfaceContainerLowest,
+            focusedBorderColor = Primary,
+            unfocusedBorderColor = OutlineVariant
+        ),
+        singleLine = true
+    )
+}
+
+// ── Shared Action Button ────────────────────────────────────
+@Composable
+fun SimButton(text: String, onClick: () -> Unit) {
+    Button(
+        onClick = onClick,
+        modifier = Modifier.fillMaxWidth().height(48.dp),
+        shape = RoundedCornerShape(12.dp),
+        colors = ButtonDefaults.buttonColors(containerColor = Primary, contentColor = OnPrimary)
+    ) {
+        Text(text, fontWeight = FontWeight.SemiBold)
+    }
+}
+
+// ── Shared Result Card ──────────────────────────────────────
+@Composable
+fun SimResultCard(title: String, content: @Composable ColumnScope.() -> Unit) {
+    Card(
+        Modifier.fillMaxWidth(),
+        shape = RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = SurfaceContainerLowest),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
+    ) {
+        Column(Modifier.padding(20.dp)) {
+            Text(title, style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = OnSurface)
+            Spacer(Modifier.height(16.dp))
+            content()
+        }
+    }
+}
+
+@Composable
+fun SimResultRow(label: String, value: String, valueColor: Color = OnSurface, bold: Boolean = false) {
+    Row(Modifier.fillMaxWidth().padding(vertical = 4.dp), horizontalArrangement = Arrangement.SpaceBetween) {
+        Text(label, color = Outline, style = MaterialTheme.typography.bodyMedium)
+        Text(value, color = valueColor, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal))
+    }
+}
+
+// ── Tab 1: Simulasi Jual ────────────────────────────────────
 @Composable
 fun SellSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>) {
     val result by viewModel.sellResult.collectAsState()
     val vendors = prices.map { it.unit }.distinct()
-    
     var vendor by remember { mutableStateOf(vendors.firstOrNull() ?: "") }
     var gram by remember { mutableStateOf("") }
     var buyPrice by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        VendorDropdown(vendor, vendors, expanded, { expanded = it }, { vendor = it })
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        OutlinedTextField(
-            value = gram, onValueChange = { gram = it },
-            label = { Text("Berat Emas (Gram)") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Surface, unfocusedContainerColor = Surface)
-        )
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        OutlinedTextField(
-            value = buyPrice, onValueChange = { buyPrice = it },
-            label = { Text("Harga Beli (Per Gram)") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Surface, unfocusedContainerColor = Surface)
-        )
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        Button(
-            onClick = { viewModel.calculateSell(gram, buyPrice, vendor, prices) },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = Secondary)
-        ) {
-            Text("Hitung Simulasi Jual", color = Primary, fontWeight = FontWeight.Bold)
-        }
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        result?.let {
-            ResultCard(title = "Hasil Simulasi Jual") {
-                ResultRow("Status", it.status, if (it.profitLoss > 0) Success else if (it.profitLoss < 0) Error else Color.Gray)
-                ResultRow("Harga Beli (Input)", formatRp(it.buyPriceInput))
-                ResultRow("Harga Jual Hari Ini", formatRp(it.sellPriceToday))
-                Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color.LightGray.copy(alpha = 0.5f))
-                ResultRow("Total Modal", formatRp(it.capitalValue))
-                ResultRow("Nilai Jual", formatRp(it.sellValue))
-                Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color.LightGray.copy(alpha = 0.5f))
-                ResultRow("Keuntungan / Kerugian", "${formatRp(it.profitLoss)} (${String.format(Locale.US, "%.2f", it.profitPercentage)}%)", if (it.profitLoss > 0) Success else if (it.profitLoss < 0) Error else Color.Gray)
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        item { SimVendorDropdown(vendor, vendors, expanded, { expanded = it }, { vendor = it }) }
+        item { SimInput(gram, { gram = it }, "Berat Emas (Gram)") }
+        item { SimInput(buyPrice, { buyPrice = it }, "Harga Beli per Gram (Rp)") }
+        item { SimButton("Hitung Simulasi Jual") { viewModel.calculateSell(gram, buyPrice, vendor, prices) } }
+        result?.let { res ->
+            item {
+                SimResultCard("Hasil Simulasi Jual") {
+                    SimResultRow("Status", res.status, if (res.profitLoss > 0) Success else if (res.profitLoss < 0) Error else Outline)
+                    SimResultRow("Harga Beli (Input)", formatRp(res.buyPriceInput))
+                    SimResultRow("Harga Jual Hari Ini", formatRp(res.sellPriceToday))
+                    HorizontalDivider(Modifier.padding(vertical = 8.dp), color = OutlineVariant.copy(alpha = 0.3f))
+                    SimResultRow("Total Modal", formatRp(res.capitalValue))
+                    SimResultRow("Nilai Jual", formatRp(res.sellValue))
+                    HorizontalDivider(Modifier.padding(vertical = 8.dp), color = OutlineVariant.copy(alpha = 0.3f))
+                    SimResultRow(
+                        "Keuntungan / Kerugian",
+                        "${formatRp(res.profitLoss)} (${String.format(Locale.US, "%.2f", res.profitPercentage)}%)",
+                        if (res.profitLoss > 0) Success else if (res.profitLoss < 0) Error else Outline,
+                        true
+                    )
+                }
             }
         }
     }
 }
 
-// ---------------------------------------------------------
-// Tab 2: Simulasi Beli
-// ---------------------------------------------------------
-@OptIn(ExperimentalMaterial3Api::class)
+// ── Tab 2: Simulasi Beli ────────────────────────────────────
 @Composable
 fun BuySimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>) {
     val result by viewModel.buyResult.collectAsState()
     val vendors = prices.map { it.unit }.distinct()
-    
     var vendor by remember { mutableStateOf(vendors.firstOrNull() ?: "") }
     var gram by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        VendorDropdown(vendor, vendors, expanded, { expanded = it }, { vendor = it })
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        OutlinedTextField(
-            value = gram, onValueChange = { gram = it },
-            label = { Text("Berat Emas (Gram)") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Surface, unfocusedContainerColor = Surface)
-        )
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        Button(
-            onClick = { viewModel.calculateBuy(gram, vendor, prices) },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = Secondary)
-        ) {
-            Text("Hitung Estimasi Beli", color = Primary, fontWeight = FontWeight.Bold)
-        }
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        result?.let {
-            ResultCard(title = "Hasil Estimasi Beli") {
-                ResultRow("Harga per Gram", formatRp(it.pricePerGram))
-                ResultRow("Subtotal", formatRp(it.subtotal))
-                ResultRow("Pajak & Admin", formatRp(it.tax + it.adminFee))
-                Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color.LightGray.copy(alpha = 0.5f))
-                ResultRow("Grand Total", formatRp(it.grandTotal), Primary, true)
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        item { SimVendorDropdown(vendor, vendors, expanded, { expanded = it }, { vendor = it }) }
+        item { SimInput(gram, { gram = it }, "Berat Emas (Gram)") }
+        item { SimButton("Hitung Estimasi Beli") { viewModel.calculateBuy(gram, vendor, prices) } }
+        result?.let { res ->
+            item {
+                SimResultCard("Hasil Estimasi Beli") {
+                    SimResultRow("Harga per Gram", formatRp(res.pricePerGram))
+                    SimResultRow("Subtotal", formatRp(res.subtotal))
+                    SimResultRow("Pajak & Admin", formatRp(res.tax + res.adminFee))
+                    HorizontalDivider(Modifier.padding(vertical = 8.dp), color = OutlineVariant.copy(alpha = 0.3f))
+                    SimResultRow("Grand Total", formatRp(res.grandTotal), Primary, true)
+                }
             }
         }
     }
 }
 
-// ---------------------------------------------------------
-// Tab 3: Simulasi Budget
-// ---------------------------------------------------------
-@OptIn(ExperimentalMaterial3Api::class)
+// ── Tab 3: Simulasi Budget ──────────────────────────────────
 @Composable
 fun BudgetSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>) {
     val result by viewModel.budgetResult.collectAsState()
     val vendors = prices.map { it.unit }.distinct()
-    
     var vendor by remember { mutableStateOf(vendors.firstOrNull() ?: "") }
     var budget by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        VendorDropdown(vendor, vendors, expanded, { expanded = it }, { vendor = it })
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        OutlinedTextField(
-            value = budget, onValueChange = { budget = it },
-            label = { Text("Budget (Rp)") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Surface, unfocusedContainerColor = Surface)
-        )
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        Button(
-            onClick = { viewModel.calculateBudget(budget, vendor, prices) },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = Secondary)
-        ) {
-            Text("Hitung Budget", color = Primary, fontWeight = FontWeight.Bold)
-        }
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        result?.let {
-            ResultCard(title = "Hasil Simulasi Budget") {
-                ResultRow("Harga per Gram", formatRp(it.pricePerGram))
-                Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color.LightGray.copy(alpha = 0.5f))
-                ResultRow("Gram yang Didapat", "${it.estimatedGrams} Gram", Primary, true)
-                ResultRow("Sisa Budget", formatRp(it.remainingBudget))
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        item { SimVendorDropdown(vendor, vendors, expanded, { expanded = it }, { vendor = it }) }
+        item { SimInput(budget, { budget = it }, "Budget (Rp)") }
+        item { SimButton("Hitung Budget") { viewModel.calculateBudget(budget, vendor, prices) } }
+        result?.let { res ->
+            item {
+                SimResultCard("Hasil Simulasi Budget") {
+                    SimResultRow("Harga per Gram", formatRp(res.pricePerGram))
+                    HorizontalDivider(Modifier.padding(vertical = 8.dp), color = OutlineVariant.copy(alpha = 0.3f))
+                    SimResultRow("Gram yang Didapat", "${res.estimatedGrams} Gram", Primary, true)
+                    SimResultRow("Sisa Budget", formatRp(res.remainingBudget))
+                }
             }
         }
     }
 }
 
-// ---------------------------------------------------------
-// Tab 4: Simulasi Target
-// ---------------------------------------------------------
-@OptIn(ExperimentalMaterial3Api::class)
+// ── Tab 4: Simulasi Target ──────────────────────────────────
 @Composable
 fun TargetSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>) {
     val result by viewModel.targetResult.collectAsState()
     val vendors = prices.map { it.unit }.distinct()
-    
     var vendor by remember { mutableStateOf(vendors.firstOrNull() ?: "") }
     var targetGram by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
 
-    Column(modifier = Modifier.fillMaxSize()) {
-        VendorDropdown(vendor, vendors, expanded, { expanded = it }, { vendor = it })
-        Spacer(modifier = Modifier.height(16.dp))
-        
-        OutlinedTextField(
-            value = targetGram, onValueChange = { targetGram = it },
-            label = { Text("Target Gram") },
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-            modifier = Modifier.fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
-            colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Surface, unfocusedContainerColor = Surface)
-        )
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        Button(
-            onClick = { viewModel.calculateTarget(targetGram, vendor, prices) },
-            modifier = Modifier.fillMaxWidth(),
-            colors = ButtonDefaults.buttonColors(containerColor = Secondary)
-        ) {
-            Text("Hitung Dana Target", color = Primary, fontWeight = FontWeight.Bold)
-        }
-        
-        Spacer(modifier = Modifier.height(24.dp))
-        
-        result?.let {
-            ResultCard(title = "Hasil Simulasi Target") {
-                ResultRow("Harga per Gram", formatRp(it.pricePerGram))
-                Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color.LightGray.copy(alpha = 0.5f))
-                ResultRow("Dana Dibutuhkan", formatRp(it.grandTotal), Primary, true)
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        item { SimVendorDropdown(vendor, vendors, expanded, { expanded = it }, { vendor = it }) }
+        item { SimInput(targetGram, { targetGram = it }, "Target Gram") }
+        item { SimButton("Hitung Dana Target") { viewModel.calculateTarget(targetGram, vendor, prices) } }
+        result?.let { res ->
+            item {
+                SimResultCard("Hasil Simulasi Target") {
+                    SimResultRow("Harga per Gram", formatRp(res.pricePerGram))
+                    HorizontalDivider(Modifier.padding(vertical = 8.dp), color = OutlineVariant.copy(alpha = 0.3f))
+                    SimResultRow("Dana Dibutuhkan", formatRp(res.grandTotal), Primary, true)
+                }
             }
         }
     }
 }
 
-// ---------------------------------------------------------
-// Tab 5: Simulasi Portofolio
-// ---------------------------------------------------------
-@OptIn(ExperimentalMaterial3Api::class)
+// ── Tab 5: Simulasi Portofolio ──────────────────────────────
 @Composable
 fun PortfolioSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>) {
     val assets by viewModel.portfolioAssets.collectAsState()
     val result by viewModel.portfolioResult.collectAsState()
     val vendors = prices.map { it.unit }.distinct()
-    
     var vendor by remember { mutableStateOf(vendors.firstOrNull() ?: "") }
     var gram by remember { mutableStateOf("") }
     var buyPrice by remember { mutableStateOf("") }
     var expanded by remember { mutableStateOf(false) }
 
-    LazyColumn(
-        modifier = Modifier.fillMaxSize(),
-        contentPadding = PaddingValues(bottom = 32.dp)
-    ) {
+    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
         item {
             Card(
-                modifier = Modifier.fillMaxWidth(),
-                colors = CardDefaults.cardColors(containerColor = Surface),
-                elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
-                shape = RoundedCornerShape(16.dp)
+                Modifier.fillMaxWidth(),
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = SurfaceContainerLowest),
+                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
             ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Text("Tambah Aset Portofolio", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Primary)
-                    Spacer(modifier = Modifier.height(16.dp))
-                    VendorDropdown(vendor, vendors, expanded, { expanded = it }, { vendor = it })
-                    Spacer(modifier = Modifier.height(8.dp))
+                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text("Tambah Aset", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = OnSurface)
+                    SimVendorDropdown(vendor, vendors, expanded, { expanded = it }, { vendor = it })
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        OutlinedTextField(
-                            value = gram, onValueChange = { gram = it },
-                            label = { Text("Gram") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Background, unfocusedContainerColor = Background)
-                        )
-                        OutlinedTextField(
-                            value = buyPrice, onValueChange = { buyPrice = it },
-                            label = { Text("Harga Beli (Rp)") },
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.weight(1f),
-                            shape = RoundedCornerShape(16.dp),
-                            colors = OutlinedTextFieldDefaults.colors(focusedContainerColor = Background, unfocusedContainerColor = Background)
-                        )
+                        Box(Modifier.weight(1f)) { SimInput(gram, { gram = it }, "Gram") }
+                        Box(Modifier.weight(1f)) { SimInput(buyPrice, { buyPrice = it }, "Harga Beli (Rp)") }
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    Button(
-                        onClick = { 
-                            viewModel.addPortfolioAsset(vendor, gram, buyPrice, prices)
-                            gram = ""
-                            buyPrice = ""
-                        },
-                        modifier = Modifier.fillMaxWidth(),
-                        colors = ButtonDefaults.buttonColors(containerColor = Secondary)
-                    ) {
-                        Text("Tambah ke Portofolio", color = Primary, fontWeight = FontWeight.Bold)
+                    SimButton("Tambah ke Portofolio") {
+                        viewModel.addPortfolioAsset(vendor, gram, buyPrice, prices)
+                        gram = ""; buyPrice = ""
                     }
                 }
             }
-            Spacer(modifier = Modifier.height(16.dp))
         }
 
         if (assets.isNotEmpty()) {
-            item {
-                result?.let { res ->
-                    ResultCard(title = "Ringkasan Portofolio") {
-                        ResultRow("Total Gram", "${res.totalGram} Gram", Primary, true)
-                        ResultRow("Total Modal", formatRp(res.totalCapital))
-                        ResultRow("Nilai Aset Hari Ini", formatRp(res.totalCurrentValue))
-                        Divider(modifier = Modifier.padding(vertical = 8.dp), color = Color.LightGray.copy(alpha = 0.5f))
-                        ResultRow("Total Keuntungan", "${formatRp(res.totalProfitLoss)} (${String.format(Locale.US, "%.2f", res.totalProfitPercentage)}%)", if (res.totalProfitLoss >= 0) Success else Error, true)
+            result?.let { res ->
+                item {
+                    SimResultCard("Ringkasan Portofolio") {
+                        SimResultRow("Total Gram", "${res.totalGram} Gram", Primary, true)
+                        SimResultRow("Total Modal", formatRp(res.totalCapital))
+                        SimResultRow("Nilai Aset Hari Ini", formatRp(res.totalCurrentValue))
+                        HorizontalDivider(Modifier.padding(vertical = 8.dp), color = OutlineVariant.copy(alpha = 0.3f))
+                        SimResultRow(
+                            "Total Keuntungan",
+                            "${formatRp(res.totalProfitLoss)} (${String.format(Locale.US, "%.2f", res.totalProfitPercentage)}%)",
+                            if (res.totalProfitLoss >= 0) Success else Error, true
+                        )
                     }
-                    Spacer(modifier = Modifier.height(16.dp))
-                    
-                    Text("Detail Aset", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Primary)
-                    Spacer(modifier = Modifier.height(8.dp))
                 }
             }
-            
+
+            item {
+                Text("Detail Aset", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = OnSurface)
+            }
+
             items(assets.size) { index ->
                 val asset = assets[index]
                 val assetResult = result?.assetResults?.find { it.asset == asset }
-                
                 Card(
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp),
-                    colors = CardDefaults.cardColors(containerColor = Surface),
-                    shape = RoundedCornerShape(12.dp)
+                    Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
+                    colors = CardDefaults.cardColors(containerColor = SurfaceContainerLowest),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                 ) {
-                    Column(modifier = Modifier.padding(12.dp)) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(asset.vendorUnit.replace(Regex("(?i)gram - "), "").trim(), fontWeight = FontWeight.Bold, color = Primary)
-                            Text("${asset.gram} Gram", fontWeight = FontWeight.Bold)
+                    Column(Modifier.padding(14.dp)) {
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text(asset.vendorUnit.replace(Regex("(?i)gram - "), "").trim(), fontWeight = FontWeight.SemiBold, color = OnSurface)
+                            Text("${asset.gram} Gram", fontWeight = FontWeight.SemiBold, color = OnSurface)
                         }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Modal: ${formatRp((asset.gram * asset.buyPricePerGram).toLong())}", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                        Spacer(Modifier.height(4.dp))
+                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                            Text("Modal: ${formatRp((asset.gram * asset.buyPricePerGram).toLong())}", style = MaterialTheme.typography.labelMedium, color = Outline)
                             assetResult?.let {
-                                Text("P/L: ${formatRp(it.profitLoss)}", style = MaterialTheme.typography.bodySmall, color = if(it.profitLoss >= 0) Success else Error, fontWeight = FontWeight.Bold)
+                                Text(
+                                    "P/L: ${formatRp(it.profitLoss)}",
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = if (it.profitLoss >= 0) Success else Error,
+                                    fontWeight = FontWeight.Bold
+                                )
                             }
                         }
                     }
                 }
             }
-            
+
             item {
-                Spacer(modifier = Modifier.height(16.dp))
                 OutlinedButton(
                     onClick = { viewModel.clearPortfolioAssets(prices) },
                     modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedCornerShape(12.dp),
                     colors = ButtonDefaults.outlinedButtonColors(contentColor = Error)
                 ) {
                     Text("Reset Portofolio")
@@ -442,22 +360,17 @@ fun PortfolioSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInf
     }
 }
 
-// ---------------------------------------------------------
-// Helper Components
-// ---------------------------------------------------------
+// ── Shared Vendor Dropdown ──────────────────────────────────
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun VendorDropdown(
+fun SimVendorDropdown(
     selected: String,
     vendors: List<String>,
     expanded: Boolean,
     onExpandedChange: (Boolean) -> Unit,
     onSelected: (String) -> Unit
 ) {
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = onExpandedChange
-    ) {
+    ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = onExpandedChange) {
         OutlinedTextField(
             value = selected.replace(Regex("(?i)gram - "), "").trim(),
             onValueChange = {},
@@ -465,64 +378,31 @@ fun VendorDropdown(
             label = { Text("Vendor") },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier.menuAnchor().fillMaxWidth(),
-            shape = RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(12.dp),
             colors = OutlinedTextFieldDefaults.colors(
-                focusedContainerColor = Surface,
-                unfocusedContainerColor = Surface
-            )
+                focusedContainerColor = SurfaceContainerLowest,
+                unfocusedContainerColor = SurfaceContainerLowest,
+                focusedBorderColor = Primary,
+                unfocusedBorderColor = OutlineVariant
+            ),
+            singleLine = true
         )
         ExposedDropdownMenu(
             expanded = expanded,
             onDismissRequest = { onExpandedChange(false) },
-            modifier = Modifier.background(Surface)
+            modifier = Modifier.background(SurfaceContainerLowest)
         ) {
             vendors.forEach { vendor ->
                 DropdownMenuItem(
                     text = { Text(vendor.replace(Regex("(?i)gram - "), "").trim()) },
-                    onClick = {
-                        onSelected(vendor)
-                        onExpandedChange(false)
-                    }
+                    onClick = { onSelected(vendor); onExpandedChange(false) }
                 )
             }
         }
     }
 }
 
-@Composable
-fun ResultCard(title: String, content: @Composable ColumnScope.() -> Unit) {
-    Card(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = Surface),
-        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp)
-    ) {
-        Column(modifier = Modifier.padding(20.dp)) {
-            Text(title, style = MaterialTheme.typography.titleMedium, color = Primary, fontWeight = FontWeight.Bold)
-            Spacer(modifier = Modifier.height(16.dp))
-            content()
-        }
-    }
-}
-
-@Composable
-fun ResultRow(label: String, value: String, valueColor: Color = Primary, bold: Boolean = false) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        Text(label, color = Color.Gray, style = MaterialTheme.typography.bodyMedium)
-        Text(
-            value,
-            color = valueColor,
-            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = if (bold) FontWeight.Bold else FontWeight.Normal)
-        )
-    }
-}
-
 fun formatRp(amount: Long): String {
-    val formatRp = NumberFormat.getCurrencyInstance(Locale("id", "ID")).apply {
-        maximumFractionDigits = 0
-    }
+    val formatRp = NumberFormat.getCurrencyInstance(Locale("id", "ID")).apply { maximumFractionDigits = 0 }
     return formatRp.format(amount)
 }

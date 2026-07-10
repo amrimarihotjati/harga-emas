@@ -3,7 +3,6 @@ package us.goldprice.hargaemas.presentation.navigation
 
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.AccountBalanceWallet
 import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.CompareArrows
 import androidx.compose.material.icons.filled.Home
@@ -16,7 +15,6 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.NavHost
@@ -27,33 +25,22 @@ import us.goldprice.hargaemas.presentation.MainViewModel
 import us.goldprice.hargaemas.presentation.home.HomeScreen
 import us.goldprice.hargaemas.presentation.compare.CompareScreen
 import us.goldprice.hargaemas.presentation.simulation.SimulationScreen
-import us.goldprice.hargaemas.theme.Outline
-import us.goldprice.hargaemas.theme.Primary
-import us.goldprice.hargaemas.theme.Surface
-import us.goldprice.hargaemas.theme.SurfaceContainerHighest
+import us.goldprice.hargaemas.theme.*
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
-    object Home : Screen("home", "Home", Icons.Default.Home)
-    object Compare : Screen("compare", "Compare", Icons.Default.CompareArrows)
-    object Simulation : Screen("simulation", "Simulate", Icons.Default.Calculate)
-    object Portfolio : Screen("portfolio", "Portfolio", Icons.Default.AccountBalanceWallet)
+    object Home : Screen("home", "Beranda", Icons.Default.Home)
+    object Compare : Screen("compare", "Bandingkan", Icons.Default.CompareArrows)
+    object Simulation : Screen("simulation", "Simulasi", Icons.Default.Calculate)
 }
 
 @Composable
 fun AppNavigation(viewModel: MainViewModel, simulationViewModel: us.goldprice.hargaemas.presentation.simulation.SimulationViewModel) {
     val navController = rememberNavController()
-    val items = listOf(
-        Screen.Home,
-        Screen.Compare,
-        Screen.Simulation,
-        Screen.Portfolio
-    )
+    val items = listOf(Screen.Home, Screen.Compare, Screen.Simulation)
 
     Scaffold(
         bottomBar = {
-            NavigationBar(
-                containerColor = Surface,
-            ) {
+            NavigationBar(containerColor = SurfaceContainerLowest) {
                 val navBackStackEntry by navController.currentBackStackEntryAsState()
                 val currentRoute = navBackStackEntry?.destination?.route
 
@@ -65,28 +52,15 @@ fun AppNavigation(viewModel: MainViewModel, simulationViewModel: us.goldprice.ha
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = Primary,
                             selectedTextColor = Primary,
-                            indicatorColor = SurfaceContainerHighest,
+                            indicatorColor = PrimaryFixed,
                             unselectedIconColor = Outline,
                             unselectedTextColor = Outline
                         ),
                         onClick = {
-                            if (screen.route == Screen.Portfolio.route) {
-                                // For now route portfolio to simulation since it has the portfolio tab
-                                navController.navigate(Screen.Simulation.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
-                            } else {
-                                navController.navigate(screen.route) {
-                                    popUpTo(navController.graph.findStartDestination().id) {
-                                        saveState = true
-                                    }
-                                    launchSingleTop = true
-                                    restoreState = true
-                                }
+                            navController.navigate(screen.route) {
+                                popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                                launchSingleTop = true
+                                restoreState = true
                             }
                         }
                     )
@@ -94,31 +68,17 @@ fun AppNavigation(viewModel: MainViewModel, simulationViewModel: us.goldprice.ha
             }
         }
     ) { innerPadding ->
-        NavHost(
-            navController = navController,
-            startDestination = Screen.Home.route,
-            modifier = Modifier.padding(innerPadding)
-        ) {
+        NavHost(navController, startDestination = Screen.Home.route, Modifier.padding(innerPadding)) {
             composable(Screen.Home.route) {
-                HomeScreen(
-                    viewModel = viewModel,
-                    onNavigateToSimulation = {
-                        navController.navigate(Screen.Simulation.route) {
-                            popUpTo(navController.graph.findStartDestination().id) {
-                                saveState = true
-                            }
-                            launchSingleTop = true
-                            restoreState = true
-                        }
+                HomeScreen(viewModel, onNavigateToSimulation = {
+                    navController.navigate(Screen.Simulation.route) {
+                        popUpTo(navController.graph.findStartDestination().id) { saveState = true }
+                        launchSingleTop = true; restoreState = true
                     }
-                )
+                })
             }
-            composable(Screen.Compare.route) {
-                CompareScreen(viewModel)
-            }
-            composable(Screen.Simulation.route) {
-                SimulationScreen(viewModel, simulationViewModel)
-            }
+            composable(Screen.Compare.route) { CompareScreen(viewModel) }
+            composable(Screen.Simulation.route) { SimulationScreen(viewModel, simulationViewModel) }
         }
     }
 }

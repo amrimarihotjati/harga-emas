@@ -61,7 +61,7 @@ fun HargaEmasHariIniTheme(
         val context = LocalContext.current
         if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
       }
-      // Force light color scheme for now to match exactly the AUREUM brand mockup
+      // Force light color scheme
       else -> LightColorScheme
     }
 

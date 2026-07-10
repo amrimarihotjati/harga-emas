@@ -2,8 +2,7 @@ package us.goldprice.hargaemas.theme
 
 import androidx.compose.ui.graphics.Color
 
-// AUREUM Design System Colors
-
+// ── Surface Colors ──────────────────────────────────────────
 val Surface = Color(0xFFF9F9FF)
 val SurfaceDim = Color(0xFFD8D9E5)
 val SurfaceBright = Color(0xFFF9F9FF)
@@ -16,31 +15,35 @@ val OnSurface = Color(0xFF181C23)
 val OnSurfaceVariant = Color(0xFF414755)
 val InverseSurface = Color(0xFF2D3039)
 val InverseOnSurface = Color(0xFFEEF0FC)
-val Outline = Color(0xFF717786)
-val OutlineVariant = Color(0xFFC1C6D7)
+val SurfaceVariant = Color(0xFFE0E2ED)
 val SurfaceTint = Color(0xFF005BC1)
 
+// ── Primary Colors ──────────────────────────────────────────
 val Primary = Color(0xFF0058BC)
 val OnPrimary = Color(0xFFFFFFFF)
 val PrimaryContainer = Color(0xFF0070EB)
 val OnPrimaryContainer = Color(0xFFFEFCFF)
 val InversePrimary = Color(0xFFADC6FF)
 
+// ── Secondary Colors ────────────────────────────────────────
 val Secondary = Color(0xFF705D00)
 val OnSecondary = Color(0xFFFFFFFF)
 val SecondaryContainer = Color(0xFFFCD400)
 val OnSecondaryContainer = Color(0xFF6E5C00)
 
+// ── Tertiary Colors ─────────────────────────────────────────
 val Tertiary = Color(0xFF9E3D00)
 val OnTertiary = Color(0xFFFFFFFF)
 val TertiaryContainer = Color(0xFFC64F00)
 val OnTertiaryContainer = Color(0xFFFFFBFF)
 
+// ── Error Colors ────────────────────────────────────────────
 val Error = Color(0xFFBA1A1A)
 val OnError = Color(0xFFFFFFFF)
 val ErrorContainer = Color(0xFFFFDAD6)
 val OnErrorContainer = Color(0xFF93000A)
 
+// ── Fixed Colors ────────────────────────────────────────────
 val PrimaryFixed = Color(0xFFD8E2FF)
 val PrimaryFixedDim = Color(0xFFADC6FF)
 val OnPrimaryFixed = Color(0xFF001A41)
@@ -56,17 +59,15 @@ val TertiaryFixedDim = Color(0xFFFFB595)
 val OnTertiaryFixed = Color(0xFF351000)
 val OnTertiaryFixedVariant = Color(0xFF7C2E00)
 
+// ── Background ──────────────────────────────────────────────
 val Background = Color(0xFFF9F9FF)
 val OnBackground = Color(0xFF181C23)
-val SurfaceVariant = Color(0xFFE0E2ED)
 
-// Custom App specific colors (Trends)
+// ── Outline ─────────────────────────────────────────────────
+val Outline = Color(0xFF717786)
+val OutlineVariant = Color(0xFFC1C6D7)
+
+// ── Trend Colors ────────────────────────────────────────────
 val Success = Color(0xFF00C853)
 val DownTrend = Error
 val UpTrend = Success
-
-// Legacy aliases (to avoid breaking changes in other screens temporarily)
-val CardBlueStart = Color(0xFF0A2540)
-val CardBlueEnd = Color(0xFF113A63)
-val CardLightBlueStart = Color(0xFF2E6394)
-val CardLightBlueEnd = Color(0xFF4A89C7)

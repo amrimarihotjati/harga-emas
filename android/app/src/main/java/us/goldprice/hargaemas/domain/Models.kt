@@ -6,7 +6,10 @@ data class PriceInfo(
     @SerializedName("weight") val weight: String,
     @SerializedName("unit") val unit: String,
     @SerializedName("buy_price") val buyPrice: Long,
-    @SerializedName("sell_price") val sellPrice: Long
+    @SerializedName("sell_price") val sellPrice: Long,
+    @SerializedName("change_nominal") val changeNominal: Long = 0,
+    @SerializedName("change_percentage") val changePercentage: Double = 0.0,
+    @SerializedName("trend") val trend: String = "flat"
 )
 
 data class GoldData(

@@ -78,7 +78,10 @@ dependencies {
   androidTestImplementation(libs.androidx.test.runner)
   androidTestImplementation(libs.androidx.test.espresso.core)
 
-  // Navigation (Unused)
+  // Navigation & UI Utilities
+  implementation(libs.androidx.navigation.compose)
+  implementation(libs.androidx.core.splashscreen)
+  implementation(libs.androidx.compose.material.icons.extended)
 
   // Networking
   implementation(libs.retrofit)

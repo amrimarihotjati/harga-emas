@@ -97,15 +97,6 @@ fun CompareScreen(viewModel: MainViewModel) {
                                         HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = OutlineVariant.copy(alpha = 0.3f))
                                     }
                                 }
-                                
-                                if (adConfig?.show_native_on_compare == true) {
-                                    item {
-                                        Spacer(Modifier.height(16.dp))
-                                        Box(Modifier.fillMaxWidth().padding(16.dp).clip(RoundedCornerShape(12.dp))) {
-                                            NativeAdViewComposable(context = LocalContext.current, config = adConfig)
-                                        }
-                                    }
-                                }
                             }
                         }
                     }

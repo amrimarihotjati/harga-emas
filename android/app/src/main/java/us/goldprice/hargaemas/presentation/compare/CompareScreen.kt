@@ -77,28 +77,17 @@ fun CompareScreen(viewModel: MainViewModel) {
                         elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
                     ) {
                         Column {
-                            // Table header
                             Row(
                                 Modifier.fillMaxWidth().background(PrimaryFixed.copy(alpha = 0.3f)).padding(horizontal = 16.dp, vertical = 14.dp),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Text("Gram", style = MaterialTheme.typography.labelMedium, color = OnSurface, modifier = Modifier.weight(0.15f))
-                                Text(v1Name.take(6), style = MaterialTheme.typography.labelMedium, color = OnSurface, modifier = Modifier.weight(0.25f), textAlign = TextAlign.End)
-                                Text(v2Name.take(6), style = MaterialTheme.typography.labelMedium, color = OnSurface, modifier = Modifier.weight(0.25f), textAlign = TextAlign.End)
-                                Text("Selisih", style = MaterialTheme.typography.labelMedium, color = OnSurface, modifier = Modifier.weight(0.25f), textAlign = TextAlign.End)
-                                Text("Murah", style = MaterialTheme.typography.labelMedium, color = OnSurface, modifier = Modifier.weight(0.10f), textAlign = TextAlign.End)
+                                Text("Gram", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = OnSurface, modifier = Modifier.weight(0.15f))
+                                Text(v1Name.take(8), style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = OnSurface, modifier = Modifier.weight(0.3f), textAlign = TextAlign.End)
+                                Text(v2Name.take(8), style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = OnSurface, modifier = Modifier.weight(0.3f), textAlign = TextAlign.End)
+                                Text("Selisih", style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold), color = OnSurface, modifier = Modifier.weight(0.25f), textAlign = TextAlign.End)
                             }
 
                             LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 24.dp)) {
-                                if (adConfig?.show_native_on_compare == true) {
-                                    item {
-                                        Box(Modifier.fillMaxWidth().padding(16.dp).clip(RoundedCornerShape(12.dp))) {
-                                            NativeAdViewComposable(context = LocalContext.current, config = adConfig)
-                                        }
-                                        HorizontalDivider(color = OutlineVariant.copy(alpha = 0.3f))
-                                    }
-                                }
-                                
                                 items(commonWeights.size) { index ->
                                     val weight = commonWeights[index]
                                     val p1 = v1Prices[weight]?.sellPrice
@@ -106,6 +95,15 @@ fun CompareScreen(viewModel: MainViewModel) {
                                     CompareRowWithDiff(weight, p1, p2, v1Name, v2Name)
                                     if (index < commonWeights.size - 1) {
                                         HorizontalDivider(Modifier.padding(horizontal = 16.dp), color = OutlineVariant.copy(alpha = 0.3f))
+                                    }
+                                }
+                                
+                                if (adConfig?.show_native_on_compare == true) {
+                                    item {
+                                        Spacer(Modifier.height(16.dp))
+                                        Box(Modifier.fillMaxWidth().padding(16.dp).clip(RoundedCornerShape(12.dp))) {
+                                            NativeAdViewComposable(context = LocalContext.current, config = adConfig)
+                                        }
                                     }
                                 }
                             }
@@ -194,37 +192,30 @@ fun CompareRowWithDiff(weight: String, v1Price: Long?, v2Price: Long?, v1Name: S
         )
         // V1 price
         Box(
-            Modifier.weight(0.25f).clip(RoundedCornerShape(6.dp))
-                .background(if (v1IsCheaper) Success.copy(alpha = 0.08f) else if (v2IsCheaper) Error.copy(alpha = 0.05f) else Color.Transparent)
-                .padding(vertical = 4.dp, horizontal = 2.dp),
+            Modifier.weight(0.3f).clip(RoundedCornerShape(6.dp))
+                .background(if (v1IsCheaper) Success.copy(alpha = 0.15f) else Color.Transparent)
+                .padding(vertical = 4.dp, horizontal = 4.dp),
             contentAlignment = Alignment.CenterEnd
         ) {
-            Text(p1Text, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = if (v1IsCheaper) FontWeight.Bold else FontWeight.Normal), color = if (v1IsCheaper) Success else if (v2IsCheaper) Error else OnSurfaceVariant)
+            Text(p1Text, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = if (v1IsCheaper) FontWeight.Bold else FontWeight.Normal), color = if (v1IsCheaper) Success else OnSurfaceVariant)
         }
         // V2 price
         Box(
-            Modifier.weight(0.25f).clip(RoundedCornerShape(6.dp))
-                .background(if (v2IsCheaper) Success.copy(alpha = 0.08f) else if (v1IsCheaper) Error.copy(alpha = 0.05f) else Color.Transparent)
-                .padding(vertical = 4.dp, horizontal = 2.dp),
+            Modifier.weight(0.3f).clip(RoundedCornerShape(6.dp))
+                .background(if (v2IsCheaper) Success.copy(alpha = 0.15f) else Color.Transparent)
+                .padding(vertical = 4.dp, horizontal = 4.dp),
             contentAlignment = Alignment.CenterEnd
         ) {
-            Text(p2Text, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = if (v2IsCheaper) FontWeight.Bold else FontWeight.Normal), color = if (v2IsCheaper) Success else if (v1IsCheaper) Error else OnSurfaceVariant)
+            Text(p2Text, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = if (v2IsCheaper) FontWeight.Bold else FontWeight.Normal), color = if (v2IsCheaper) Success else OnSurfaceVariant)
         }
         // Diff column
-        Text(
-            diffText,
-            style = MaterialTheme.typography.labelMedium,
-            color = Outline,
-            modifier = Modifier.weight(0.25f),
-            textAlign = TextAlign.End
-        )
-        // Winner column
-        Text(
-            if (v1IsCheaper) v1Name.take(3).uppercase() else if (v2IsCheaper) v2Name.take(3).uppercase() else "-",
-            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-            color = if (hasBoth && v1Price != v2Price) Success else Outline,
-            modifier = Modifier.weight(0.10f),
-            textAlign = TextAlign.End
-        )
+        Column(Modifier.weight(0.25f), horizontalAlignment = Alignment.End) {
+            Text(diffText, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Medium), color = Outline)
+            if (v1IsCheaper) {
+                Text("${v1Name.take(3)} Murah", style = MaterialTheme.typography.labelSmall, color = Success)
+            } else if (v2IsCheaper) {
+                Text("${v2Name.take(3)} Murah", style = MaterialTheme.typography.labelSmall, color = Success)
+            }
+        }
     }
 }

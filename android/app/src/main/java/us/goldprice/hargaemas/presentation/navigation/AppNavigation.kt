@@ -35,7 +35,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
 }
 
 @Composable
-fun AppNavigation(viewModel: MainViewModel) {
+fun AppNavigation(viewModel: MainViewModel, simulationViewModel: us.goldprice.hargaemas.presentation.simulation.SimulationViewModel) {
     val navController = rememberNavController()
     val items = listOf(
         Screen.Home,
@@ -89,7 +89,7 @@ fun AppNavigation(viewModel: MainViewModel) {
                 CompareScreen(viewModel)
             }
             composable(Screen.Simulation.route) {
-                SimulationScreen(viewModel)
+                SimulationScreen(viewModel, simulationViewModel)
             }
         }
     }

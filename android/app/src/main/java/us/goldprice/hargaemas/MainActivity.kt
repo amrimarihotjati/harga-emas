@@ -29,6 +29,14 @@ class MainActivity : ComponentActivity() {
         // Manual DI initialized here
         val appContainer = AppContainer()
         val viewModel = MainViewModel(appContainer.goldRepository)
+        
+        val simulationViewModel = us.goldprice.hargaemas.presentation.simulation.SimulationViewModel(
+            appContainer.calculateSellUseCase,
+            appContainer.calculateBuyUseCase,
+            appContainer.calculateBudgetUseCase,
+            appContainer.calculateTargetUseCase,
+            appContainer.calculatePortfolioUseCase
+        )
 
         setContent {
             HargaEmasHariIniTheme {
@@ -36,7 +44,7 @@ class MainActivity : ComponentActivity() {
                     modifier = Modifier.fillMaxSize(),
                     color = MaterialTheme.colorScheme.background
                 ) {
-                    AppNavigation(viewModel = viewModel)
+                    AppNavigation(viewModel = viewModel, simulationViewModel = simulationViewModel)
                 }
             }
         }

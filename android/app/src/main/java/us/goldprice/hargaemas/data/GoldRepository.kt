@@ -6,4 +6,6 @@ class GoldRepository(private val api: GoldApiService) {
     suspend fun fetchGoldPrices(): GoldData {
         return api.getGoldPrices()
     }
+
+    suspend fun fetchAdConfig() = api.getAdConfig()
 }

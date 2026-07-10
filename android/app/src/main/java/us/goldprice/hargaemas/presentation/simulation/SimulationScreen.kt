@@ -30,7 +30,7 @@ import java.util.Locale
 fun SimulationScreen(viewModel: MainViewModel, simulationViewModel: SimulationViewModel) {
     val uiState by viewModel.uiState.collectAsState()
     var selectedTabIndex by remember { mutableIntStateOf(0) }
-    val tabs = listOf("Jual", "Beli", "Budget", "Target", "Portofolio")
+    val tabs = listOf("Jual", "Beli", "Budget", "Target")
 
     Scaffold(containerColor = Background) { innerPadding ->
         Column(Modifier.fillMaxSize().padding(innerPadding)) {
@@ -75,7 +75,6 @@ fun SimulationScreen(viewModel: MainViewModel, simulationViewModel: SimulationVi
                             1 -> BuySimulationTab(simulationViewModel, prices)
                             2 -> BudgetSimulationTab(simulationViewModel, prices)
                             3 -> TargetSimulationTab(simulationViewModel, prices)
-                            4 -> PortfolioSimulationTab(simulationViewModel, prices)
                         }
                     }
                 }
@@ -261,104 +260,6 @@ fun TargetSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>)
     }
 }
 
-// ── Tab 5: Simulasi Portofolio ──────────────────────────────
-@Composable
-fun PortfolioSimulationTab(viewModel: SimulationViewModel, prices: List<PriceInfo>) {
-    val assets by viewModel.portfolioAssets.collectAsState()
-    val result by viewModel.portfolioResult.collectAsState()
-    val vendors = prices.map { it.unit }.distinct()
-    var vendor by remember { mutableStateOf(vendors.firstOrNull() ?: "") }
-    var gram by remember { mutableStateOf("") }
-    var buyPrice by remember { mutableStateOf("") }
-    var expanded by remember { mutableStateOf(false) }
-
-    LazyColumn(Modifier.fillMaxSize(), contentPadding = PaddingValues(bottom = 32.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        item {
-            Card(
-                Modifier.fillMaxWidth(),
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = SurfaceContainerLowest),
-                elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-            ) {
-                Column(Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text("Tambah Aset", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = OnSurface)
-                    SimVendorDropdown(vendor, vendors, expanded, { expanded = it }, { vendor = it })
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Box(Modifier.weight(1f)) { SimInput(gram, { gram = it }, "Gram") }
-                        Box(Modifier.weight(1f)) { SimInput(buyPrice, { buyPrice = it }, "Harga Beli (Rp)") }
-                    }
-                    SimButton("Tambah ke Portofolio") {
-                        viewModel.addPortfolioAsset(vendor, gram, buyPrice, prices)
-                        gram = ""; buyPrice = ""
-                    }
-                }
-            }
-        }
-
-        if (assets.isNotEmpty()) {
-            result?.let { res ->
-                item {
-                    SimResultCard("Ringkasan Portofolio") {
-                        SimResultRow("Total Gram", "${res.totalGram} Gram", Primary, true)
-                        SimResultRow("Total Modal", formatRp(res.totalCapital))
-                        SimResultRow("Nilai Aset Hari Ini", formatRp(res.totalCurrentValue))
-                        HorizontalDivider(Modifier.padding(vertical = 8.dp), color = OutlineVariant.copy(alpha = 0.3f))
-                        SimResultRow(
-                            "Total Keuntungan",
-                            "${formatRp(res.totalProfitLoss)} (${String.format(Locale.US, "%.2f", res.totalProfitPercentage)}%)",
-                            if (res.totalProfitLoss >= 0) Success else Error, true
-                        )
-                    }
-                }
-            }
-
-            item {
-                Text("Detail Aset", style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold), color = OnSurface)
-            }
-
-            items(assets.size) { index ->
-                val asset = assets[index]
-                val assetResult = result?.assetResults?.find { it.asset == asset }
-                Card(
-                    Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = CardDefaults.cardColors(containerColor = SurfaceContainerLowest),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                ) {
-                    Column(Modifier.padding(14.dp)) {
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(asset.vendorUnit.replace(Regex("(?i)gram - "), "").trim(), fontWeight = FontWeight.SemiBold, color = OnSurface)
-                            Text("${asset.gram} Gram", fontWeight = FontWeight.SemiBold, color = OnSurface)
-                        }
-                        Spacer(Modifier.height(4.dp))
-                        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text("Modal: ${formatRp((asset.gram * asset.buyPricePerGram).toLong())}", style = MaterialTheme.typography.labelMedium, color = Outline)
-                            assetResult?.let {
-                                Text(
-                                    "P/L: ${formatRp(it.profitLoss)}",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = if (it.profitLoss >= 0) Success else Error,
-                                    fontWeight = FontWeight.Bold
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            item {
-                OutlinedButton(
-                    onClick = { viewModel.clearPortfolioAssets(prices) },
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedCornerShape(12.dp),
-                    colors = ButtonDefaults.outlinedButtonColors(contentColor = Error)
-                ) {
-                    Text("Reset Portofolio")
-                }
-            }
-        }
-    }
-}
 
 // ── Shared Vendor Dropdown ──────────────────────────────────
 @OptIn(ExperimentalMaterial3Api::class)

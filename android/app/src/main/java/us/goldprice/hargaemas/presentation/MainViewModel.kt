@@ -10,7 +10,7 @@ import us.goldprice.hargaemas.domain.GoldData
 
 sealed interface MainUiState {
     object Loading : MainUiState
-    data class Success(val data: GoldData) : MainUiState
+    data class Success(val data: GoldData, val adConfig: us.goldprice.hargaemas.data.AdConfig? = null) : MainUiState
     data class Error(val message: String) : MainUiState
 }
 
@@ -27,7 +27,8 @@ class MainViewModel(private val repository: GoldRepository) : ViewModel() {
             _uiState.value = MainUiState.Loading
             try {
                 val result = repository.fetchGoldPrices()
-                _uiState.value = MainUiState.Success(result)
+                val adConfig = try { repository.fetchAdConfig() } catch (e: Exception) { null }
+                _uiState.value = MainUiState.Success(result, adConfig)
             } catch (e: Exception) {
                 _uiState.value = MainUiState.Error(e.message ?: "Unknown error")
             }

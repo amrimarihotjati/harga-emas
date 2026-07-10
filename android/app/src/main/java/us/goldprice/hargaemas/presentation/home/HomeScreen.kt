@@ -1,251 +1,163 @@
+@file:Suppress("DEPRECATION")
 package us.goldprice.hargaemas.presentation.home
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
-import androidx.compose.material.icons.automirrored.filled.TrendingFlat
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import us.goldprice.hargaemas.R
 import us.goldprice.hargaemas.domain.PriceInfo
 import us.goldprice.hargaemas.presentation.MainUiState
 import us.goldprice.hargaemas.presentation.MainViewModel
 import us.goldprice.hargaemas.presentation.components.shimmerEffect
 import us.goldprice.hargaemas.theme.*
 import java.text.NumberFormat
-import java.util.Locale
+import java.text.SimpleDateFormat
+import java.util.*
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun HomeScreen(viewModel: MainViewModel) {
+fun HomeScreen(
+    viewModel: MainViewModel,
+    onNavigateToSimulation: () -> Unit = {}
+) {
     val uiState by viewModel.uiState.collectAsState()
     var searchQuery by remember { mutableStateOf("") }
-    var selectedVendor by remember { mutableStateOf("Semua") }
-    var expanded by remember { mutableStateOf(false) }
+    var selectedFilter by remember { mutableStateOf("Semua") }
+    
+    // Sort Options
+    val sortOptions = listOf("Termurah", "Tertinggi", "Kenaikan Terbesar", "Penurunan Terbesar", "Nama Vendor")
+    var selectedSort by remember { mutableStateOf("Termurah") }
+    var showSortSheet by remember { mutableStateOf(false) }
 
-    Column(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(Background)
-    ) {
-        // Gradient Header & Aggregate Data
-        val headerBrush = Brush.verticalGradient(
-            colors = listOf(Primary, Primary.copy(alpha = 0.8f))
-        )
-        Column(
+    Scaffold(
+        floatingActionButton = {
+            FloatingActionButton(
+                onClick = onNavigateToSimulation,
+                containerColor = Secondary,
+                contentColor = Color.White
+            ) {
+                // Using Calculate icon as simulation
+                Icon(Icons.Default.Calculate, contentDescription = "Simulasi")
+            }
+        },
+        containerColor = Background
+    ) { innerPadding ->
+        LazyColumn(
             modifier = Modifier
-                .fillMaxWidth()
-                .background(headerBrush)
-                .padding(top = 48.dp, start = 16.dp, end = 16.dp, bottom = 24.dp)
+                .fillMaxSize()
+                .padding(innerPadding),
+            contentPadding = PaddingValues(bottom = 80.dp)
         ) {
-            Text(
-                text = "Harga Emas",
-                style = MaterialTheme.typography.headlineMedium.copy(
-                    fontWeight = FontWeight.Bold,
-                    color = Color.White
+            // Header
+            item {
+                HeaderSection(
+                    onRefresh = { viewModel.fetchData() }
                 )
-            )
-            Spacer(modifier = Modifier.height(16.dp))
+            }
 
             when (val state = uiState) {
+                is MainUiState.Loading -> {
+                    item {
+                        Box(modifier = Modifier.fillMaxWidth().height(200.dp).padding(16.dp).shimmerEffect().clip(RoundedCornerShape(16.dp)))
+                    }
+                }
+                is MainUiState.Error -> {
+                    item {
+                        Box(modifier = Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                            Text("Gagal memuat data: ${state.message}", color = Error)
+                        }
+                    }
+                }
                 is MainUiState.Success -> {
                     val data = state.data
-                    val cheapest1g = data.prices.filter { it.weight == "1" }.minByOrNull { it.sellPrice }
-                    val formatRp = NumberFormat.getCurrencyInstance(Locale("id", "ID")).apply {
-                        maximumFractionDigits = 0
-                    }
-
-                    if (cheapest1g != null) {
-                        Card(
-                            modifier = Modifier.fillMaxWidth(),
-                            colors = CardDefaults.cardColors(containerColor = Color.White.copy(alpha = 0.15f)),
-                            shape = RoundedCornerShape(12.dp)
-                        ) {
-                            Column(modifier = Modifier.padding(16.dp)) {
-                                Text(
-                                    text = "Termurah Hari Ini (1 Gram)",
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = Color.LightGray
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
-                                ) {
-                                    Text(
-                                        text = cheapest1g.unit.replace("gram - ", ""),
-                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                        color = Color.White
-                                    )
-                                    Text(
-                                        text = formatRp.format(cheapest1g.sellPrice),
-                                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                                        color = Secondary
-                                    )
-                                }
+                    val allPrices = data.prices.filter { it.weight == "1" } // Default to 1 gram for summary
+                    
+                    if (allPrices.isNotEmpty()) {
+                        // Ringkasan Pasar
+                        item {
+                            MarketSummarySection(allPrices)
+                        }
+                        
+                        // Simulasi Cepat
+                        item {
+                            QuickSimulationSection(allPrices.firstOrNull())
+                        }
+                        
+                        // Search & Filter
+                        item {
+                            SearchAndFilterSection(
+                                searchQuery = searchQuery,
+                                onSearchChange = { searchQuery = it },
+                                selectedFilter = selectedFilter,
+                                onFilterChange = { selectedFilter = it },
+                                onSortClick = { showSortSheet = true },
+                                vendors = allPrices.map { it.unit.replace("gram - ", "") }.distinct()
+                            )
+                        }
+                        
+                        // Daftar Harga
+                        val filteredAndSorted = processPrices(allPrices, searchQuery, selectedFilter, selectedSort)
+                        
+                        items(filteredAndSorted.size) { index ->
+                            if (index == 2) {
+                                NativeAdPlaceholder()
+                            }
+                            ModernPriceCard(filteredAndSorted[index])
+                        }
+                        
+                        if (filteredAndSorted.size > 7) {
+                            item {
+                                NativeAdPlaceholder()
                             }
                         }
                     }
                 }
-                else -> {
-                    Box(modifier = Modifier
-                        .fillMaxWidth()
-                        .height(80.dp)
-                        .shimmerEffect()
-                        .clip(RoundedCornerShape(12.dp)))
-                }
             }
-
-            Spacer(modifier = Modifier.height(16.dp))
-            OutlinedTextField(
-                value = searchQuery,
-                onValueChange = { searchQuery = it },
-                placeholder = { Text("Cari gram (misal: 1, 5, 10)", color = Color.LightGray) },
-                leadingIcon = { Icon(Icons.Default.Search, contentDescription = "Search", tint = Color.LightGray) },
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(50.dp),
-                colors = OutlinedTextFieldDefaults.colors(
-                    focusedContainerColor = Color.White.copy(alpha = 0.1f),
-                    unfocusedContainerColor = Color.White.copy(alpha = 0.1f),
-                    focusedBorderColor = Secondary,
-                    unfocusedBorderColor = Color.Transparent,
-                    focusedTextColor = Color.White,
-                    unfocusedTextColor = Color.White
-                ),
-                shape = RoundedCornerShape(25.dp)
-            )
         }
-
-        when (val state = uiState) {
-            is MainUiState.Loading -> {
-                LazyColumn(
-                    modifier = Modifier.fillMaxSize(),
-                    contentPadding = PaddingValues(16.dp),
-                    verticalArrangement = Arrangement.spacedBy(1.dp)
-                ) {
-                    items(10) {
-                        Box(
+        
+        if (showSortSheet) {
+            ModalBottomSheet(onDismissRequest = { showSortSheet = false }, containerColor = Surface) {
+                Column(modifier = Modifier.padding(16.dp).padding(bottom = 32.dp)) {
+                    Text("Urutkan Berdasarkan", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                    Spacer(modifier = Modifier.height(16.dp))
+                    sortOptions.forEach { opt ->
+                        Row(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .height(60.dp)
-                                .padding(vertical = 4.dp)
-                                .shimmerEffect()
-                        )
-                    }
-                }
-            }
-            is MainUiState.Error -> {
-                Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(text = "Error: ${state.message}", color = MaterialTheme.colorScheme.error)
-                        Button(
-                            onClick = { viewModel.fetchData() },
-                            colors = ButtonDefaults.buttonColors(containerColor = Secondary)
+                                .clickable { selectedSort = opt; showSortSheet = false }
+                                .padding(vertical = 12.dp),
+                            verticalAlignment = Alignment.CenterVertically
                         ) {
-                            Text("Coba Lagi", color = Color.White)
-                        }
-                    }
-                }
-            }
-            is MainUiState.Success -> {
-                val data = state.data
-                val vendors = listOf("Semua") + data.prices.map { it.unit }.distinct()
-
-                val filteredPrices = data.prices.filter { 
-                    (selectedVendor == "Semua" || it.unit == selectedVendor) &&
-                    (searchQuery.isEmpty() || it.weight.contains(searchQuery, ignoreCase = true) || it.unit.contains(searchQuery, ignoreCase = true))
-                }
-
-                // Vendor Dropdown
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(horizontal = 16.dp, vertical = 8.dp)
-                ) {
-                    ExposedDropdownMenuBox(
-                        expanded = expanded,
-                        onExpandedChange = { expanded = !expanded }
-                    ) {
-                        OutlinedTextField(
-                            value = if(selectedVendor == "Semua") "Semua Vendor" else selectedVendor.replace("gram - ", ""),
-                            onValueChange = {},
-                            readOnly = true,
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                            modifier = Modifier
-                                .menuAnchor()
-                                .fillMaxWidth(),
-                            colors = OutlinedTextFieldDefaults.colors(
-                                focusedContainerColor = Surface,
-                                unfocusedContainerColor = Surface,
-                                focusedBorderColor = Secondary,
-                                unfocusedBorderColor = Color.LightGray
-                            ),
-                            shape = RoundedCornerShape(12.dp)
-                        )
-                        ExposedDropdownMenu(
-                            expanded = expanded,
-                            onDismissRequest = { expanded = false },
-                            modifier = Modifier.background(Surface)
-                        ) {
-                            vendors.forEach { vendor ->
-                                DropdownMenuItem(
-                                    text = { Text(if(vendor == "Semua") "Semua Vendor" else vendor.replace("gram - ", "")) },
-                                    onClick = {
-                                        selectedVendor = vendor
-                                        expanded = false
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // Compact Table View
-                Card(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .padding(horizontal = 16.dp, vertical = 8.dp),
-                    shape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp),
-                    colors = CardDefaults.cardColors(containerColor = Surface),
-                    elevation = CardDefaults.cardElevation(defaultElevation = 1.dp)
-                ) {
-                    // Table Header
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .background(Color.LightGray.copy(alpha = 0.2f))
-                            .padding(horizontal = 16.dp, vertical = 12.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Text("Vendor", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(0.25f), color = Color.Gray)
-                        Text("Beli (Rp)", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(0.35f), textAlign = TextAlign.End, color = Color.Gray)
-                        Text("Jual (Rp)", style = MaterialTheme.typography.labelSmall, modifier = Modifier.weight(0.40f), textAlign = TextAlign.End, color = Color.Gray)
-                    }
-
-                    LazyColumn(modifier = Modifier.fillMaxSize()) {
-                        items(filteredPrices) { price ->
-                            CompactPriceRow(price)
-                            HorizontalDivider(color = Color.LightGray.copy(alpha = 0.3f))
+                            RadioButton(selected = selectedSort == opt, onClick = null, colors = RadioButtonDefaults.colors(selectedColor = Secondary))
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(opt)
                         }
                     }
                 }
@@ -254,119 +166,356 @@ fun HomeScreen(viewModel: MainViewModel) {
     }
 }
 
+fun processPrices(prices: List<PriceInfo>, search: String, filter: String, sort: String): List<PriceInfo> {
+    var result = prices
+    if (filter != "Semua") {
+        result = result.filter { it.unit.contains(filter, ignoreCase = true) }
+    }
+    if (search.isNotEmpty()) {
+        result = result.filter { it.unit.contains(search, ignoreCase = true) }
+    }
+    result = when (sort) {
+        "Termurah" -> result.sortedBy { it.sellPrice }
+        "Tertinggi" -> result.sortedByDescending { it.sellPrice }
+        "Kenaikan Terbesar" -> result.sortedByDescending { if(it.trend == "up") it.changeNominal else -it.changeNominal }
+        "Penurunan Terbesar" -> result.sortedByDescending { if(it.trend == "down") it.changeNominal else -it.changeNominal }
+        "Nama Vendor" -> result.sortedBy { it.unit }
+        else -> result
+    }
+    return result
+}
+
 @Composable
-fun CompactPriceRow(price: PriceInfo) {
-    val formatRp = NumberFormat.getNumberInstance(Locale("id", "ID")).apply {
-        maximumFractionDigits = 0
-    }
-    
-    val context = LocalContext.current
-    val vendorName = price.unit.replace("gram - ", "")
-    val safeName = vendorName.lowercase(Locale.ROOT).replace(" ", "_").replace("-", "_")
-    val resId = remember(safeName) {
-        context.resources.getIdentifier("ic_vendor_$safeName", "drawable", context.packageName)
-    }
+fun HeaderSection(onRefresh: () -> Unit) {
+    val formatter = SimpleDateFormat("EEEE, dd MMM yyyy HH:mm 'WIB'", Locale("id", "ID"))
+    val currentDateTime = formatter.format(Date())
 
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(horizontal = 16.dp, vertical = 12.dp),
+            .padding(top = 48.dp, start = 20.dp, end = 20.dp, bottom = 16.dp),
+        horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        // Vendor Info (Icon + Gram)
-        Row(
-            modifier = Modifier.weight(0.25f),
-            verticalAlignment = Alignment.CenterVertically
+        Column {
+            Text(
+                text = "Harga Emas Hari Ini",
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold, color = Primary)
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = "Update: $currentDateTime",
+                style = MaterialTheme.typography.bodySmall,
+                color = Color.Gray
+            )
+        }
+        IconButton(
+            onClick = onRefresh,
+            modifier = Modifier
+                .background(Surface, CircleShape)
+                .size(40.dp)
         ) {
-            if (resId != 0) {
-                Image(
-                    painter = painterResource(id = resId),
-                    contentDescription = vendorName,
-                    modifier = Modifier
-                        .size(28.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                )
-            } else {
-                Box(
-                    modifier = Modifier
-                        .size(28.dp)
-                        .clip(RoundedCornerShape(14.dp))
-                        .background(Secondary),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Text(
-                        text = vendorName.take(1),
-                        color = Color.White,
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+            Icon(Icons.Default.Refresh, contentDescription = "Refresh", tint = Secondary)
+        }
+    }
+}
+
+@Composable
+fun MarketSummarySection(prices: List<PriceInfo>) {
+    val highestBuy = prices.maxByOrNull { it.sellPrice }
+    val lowestBuy = prices.minByOrNull { it.sellPrice }
+    
+    val formatRp = NumberFormat.getCurrencyInstance(Locale("id", "ID")).apply { maximumFractionDigits = 0 }
+
+    Column(modifier = Modifier.padding(bottom = 16.dp)) {
+        Text(
+            text = "Ringkasan Pasar",
+            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+            modifier = Modifier.padding(horizontal = 20.dp, vertical = 8.dp)
+        )
+        
+        LazyRow(
+            contentPadding = PaddingValues(horizontal = 20.dp),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            highestBuy?.let {
+                item {
+                    SummaryCard(
+                        title = "Harga Tertinggi Hari Ini",
+                        vendor = it.unit.replace("gram - ", ""),
+                        price = formatRp.format(it.sellPrice),
+                        trend = it.trend,
+                        change = it.changeNominal,
+                        gradientStart = CardBlueStart,
+                        gradientEnd = CardBlueEnd
                     )
                 }
             }
-            Spacer(modifier = Modifier.width(8.dp))
+            lowestBuy?.let {
+                item {
+                    SummaryCard(
+                        title = "Harga Terendah Hari Ini",
+                        vendor = it.unit.replace("gram - ", ""),
+                        price = formatRp.format(it.sellPrice),
+                        trend = it.trend,
+                        change = it.changeNominal,
+                        gradientStart = CardLightBlueStart,
+                        gradientEnd = CardLightBlueEnd
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun SummaryCard(
+    title: String,
+    vendor: String,
+    price: String,
+    trend: String,
+    change: Long,
+    gradientStart: Color,
+    gradientEnd: Color
+) {
+    val formatRp = NumberFormat.getNumberInstance(Locale("id", "ID")).apply { maximumFractionDigits = 0 }
+    
+    Box(
+        modifier = Modifier
+            .width(280.dp)
+            .height(160.dp)
+            .clip(RoundedCornerShape(20.dp))
+            .background(Brush.linearGradient(listOf(gradientStart, gradientEnd)))
+            .padding(20.dp)
+    ) {
+        Column(modifier = Modifier.fillMaxSize(), verticalArrangement = Arrangement.SpaceBetween) {
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                Text(title, color = Color.White.copy(alpha = 0.8f), style = MaterialTheme.typography.bodyMedium)
+                Icon(Icons.AutoMirrored.Filled.TrendingUp, contentDescription = null, tint = Color.White.copy(alpha = 0.5f))
+            }
+            
             Column {
-                Text(
-                    text = "${price.weight}g",
-                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                    color = Primary
+                Text(vendor, color = Color.White, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold))
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(price, color = Color.White, style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold))
+            }
+            
+            Row(
+                modifier = Modifier
+                    .background(Color.White.copy(alpha = 0.2f), RoundedCornerShape(8.dp))
+                    .padding(horizontal = 8.dp, vertical = 4.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                val icon = if (trend == "up") Icons.AutoMirrored.Filled.TrendingUp else if (trend == "down") Icons.AutoMirrored.Filled.TrendingDown else Icons.Default.Remove
+                val sign = if (trend == "up") "+" else if (trend == "down") "-" else ""
+                
+                Icon(icon, contentDescription = null, tint = Color.White, modifier = Modifier.size(14.dp))
+                Spacer(modifier = Modifier.width(4.dp))
+                Text("$sign${formatRp.format(change)}", color = Color.White, style = MaterialTheme.typography.labelSmall)
+            }
+        }
+    }
+}
+
+@Composable
+fun QuickSimulationSection(samplePrice: PriceInfo?) {
+    if (samplePrice == null) return
+    val formatRp = NumberFormat.getCurrencyInstance(Locale("id", "ID")).apply { maximumFractionDigits = 0 }
+    
+    val calc10g = formatRp.format(samplePrice.sellPrice * 10)
+    
+    Card(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = 20.dp, vertical = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = Surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 1.dp),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Column(modifier = Modifier.weight(1f)) {
+                Text("Simulasi Cepat (10g)", style = MaterialTheme.typography.labelMedium, color = Color.Gray)
+                Spacer(modifier = Modifier.height(4.dp))
+                Text(calc10g, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = Primary)
+            }
+            Box(
+                modifier = Modifier.background(Secondary.copy(alpha = 0.1f), RoundedCornerShape(8.dp)).padding(12.dp)
+            ) {
+                Icon(Icons.Default.ArrowForward, contentDescription = null, tint = Secondary)
+            }
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun SearchAndFilterSection(
+    searchQuery: String,
+    onSearchChange: (String) -> Unit,
+    selectedFilter: String,
+    onFilterChange: (String) -> Unit,
+    onSortClick: () -> Unit,
+    vendors: List<String>
+) {
+    Column(modifier = Modifier.padding(horizontal = 20.dp, vertical = 12.dp)) {
+        Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+            OutlinedTextField(
+                value = searchQuery,
+                onValueChange = onSearchChange,
+                placeholder = { Text("Cari vendor...") },
+                leadingIcon = { Icon(Icons.Default.Search, contentDescription = null, tint = Color.Gray) },
+                modifier = Modifier.weight(1f).height(50.dp),
+                shape = RoundedCornerShape(25.dp),
+                colors = OutlinedTextFieldDefaults.colors(
+                    focusedContainerColor = Surface,
+                    unfocusedContainerColor = Surface,
+                    unfocusedBorderColor = Color.LightGray,
+                    focusedBorderColor = Secondary
+                )
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            IconButton(
+                onClick = onSortClick,
+                modifier = Modifier.background(Surface, CircleShape).size(50.dp)
+            ) {
+                Icon(Icons.Default.Sort, contentDescription = "Sort", tint = Primary)
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        
+        Row(modifier = Modifier.horizontalScroll(rememberScrollState()), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            val allFilters = listOf("Semua") + vendors
+            allFilters.forEach { filter ->
+                FilterChip(
+                    selected = selectedFilter == filter,
+                    onClick = { onFilterChange(filter) },
+                    label = { Text(filter) },
+                    colors = FilterChipDefaults.filterChipColors(
+                        selectedContainerColor = Primary,
+                        selectedLabelColor = Color.White
+                    ),
+                    shape = RoundedCornerShape(16.dp)
                 )
             }
         }
+    }
+}
 
-        // Buy Price
-        Text(
-            text = formatRp.format(price.buyPrice),
-            style = MaterialTheme.typography.bodyMedium,
-            modifier = Modifier.weight(0.35f),
-            textAlign = TextAlign.End,
-            color = Color.DarkGray
-        )
-
-        // Sell Price & Trend
-        Column(
-            modifier = Modifier.weight(0.40f),
-            horizontalAlignment = Alignment.End
-        ) {
-            Text(
-                text = formatRp.format(price.sellPrice),
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                color = Primary
-            )
-            
-            if (price.changeNominal != 0L) {
-                val trendColor = if (price.trend == "up") UpTrend else DownTrend
-                val trendIcon = if (price.trend == "up") Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Filled.TrendingDown
-                val sign = if (price.trend == "up") "+" else ""
+@Composable
+fun ModernPriceCard(priceInfo: PriceInfo) {
+    val formatRp = NumberFormat.getCurrencyInstance(Locale("id", "ID")).apply { maximumFractionDigits = 0 }
+    val formatNum = NumberFormat.getNumberInstance(Locale("id", "ID")).apply { maximumFractionDigits = 0 }
+    val context = LocalContext.current
+    
+    val vendorName = priceInfo.unit.replace("gram - ", "")
+    val safeName = vendorName.lowercase(Locale.ROOT).replace(" ", "_").replace("-", "_")
+    val resId = remember(safeName) { context.resources.getIdentifier("ic_vendor_$safeName", "drawable", context.packageName) }
+    
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = Surface),
+        elevation = CardDefaults.cardElevation(defaultElevation = 2.dp),
+        shape = RoundedCornerShape(16.dp)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+                if (resId != 0) {
+                    Image(painterResource(resId), contentDescription = null, modifier = Modifier.size(40.dp).clip(CircleShape))
+                } else {
+                    Box(modifier = Modifier.size(40.dp).clip(CircleShape).background(Secondary), contentAlignment = Alignment.Center) {
+                        Text(vendorName.take(1), color = Color.White, fontWeight = FontWeight.Bold)
+                    }
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(vendorName, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = Primary)
+                    Text("1 Gram", style = MaterialTheme.typography.bodySmall, color = Color.Gray)
+                }
                 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = trendIcon,
-                        contentDescription = price.trend,
-                        tint = trendColor,
-                        modifier = Modifier.size(12.dp)
-                    )
-                    Spacer(modifier = Modifier.width(2.dp))
-                    Text(
-                        text = "$sign${formatRp.format(price.changeNominal)}",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = trendColor,
-                        fontSize = 10.sp
-                    )
+                // Change indicator
+                if (priceInfo.changeNominal != 0L) {
+                    val color = if(priceInfo.trend == "up") UpTrend else DownTrend
+                    val sign = if(priceInfo.trend == "up") "▲" else "▼"
+                    Text("$sign +${formatNum.format(priceInfo.changeNominal)}", color = color, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
                 }
-            } else {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.TrendingFlat,
-                        contentDescription = "Flat",
-                        tint = Color.Gray,
-                        modifier = Modifier.size(12.dp)
-                    )
-                    Spacer(modifier = Modifier.width(2.dp))
-                    Text(
-                        text = "Tetap",
-                        style = MaterialTheme.typography.labelSmall,
-                        color = Color.Gray,
-                        fontSize = 10.sp
-                    )
+            }
+            
+            Spacer(modifier = Modifier.height(16.dp))
+            
+            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
+                Column {
+                    Text("Beli (Harga Vendor)", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                    Text(formatRp.format(priceInfo.sellPrice), style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = Primary)
+                    Spacer(modifier = Modifier.height(4.dp))
+                    Text("Jual (Buyback)", style = MaterialTheme.typography.labelSmall, color = Color.Gray)
+                    Text(formatRp.format(priceInfo.buyPrice), style = MaterialTheme.typography.bodyMedium, color = Color.DarkGray)
                 }
+                
+                // Dummy Sparkline graph
+                Box(modifier = Modifier.width(80.dp).height(40.dp).padding(bottom = 8.dp)) {
+                    DummySparkline(isUp = priceInfo.trend == "up" || priceInfo.trend == "flat")
+                }
+            }
+        }
+    }
+}
+
+@Composable
+fun DummySparkline(isUp: Boolean) {
+    val color = if(isUp) UpTrend else DownTrend
+    Canvas(modifier = Modifier.fillMaxSize()) {
+        val path = Path()
+        val width = size.width
+        val height = size.height
+        
+        // Random points simulation
+        path.moveTo(0f, height * 0.8f)
+        path.lineTo(width * 0.2f, height * 0.6f)
+        path.lineTo(width * 0.4f, height * 0.7f)
+        path.lineTo(width * 0.6f, height * 0.4f)
+        path.lineTo(width * 0.8f, height * 0.5f)
+        
+        if (isUp) {
+            path.lineTo(width, height * 0.1f)
+        } else {
+            path.lineTo(width, height * 0.9f)
+        }
+        
+        drawPath(
+            path = path,
+            color = color,
+            style = Stroke(width = 3.dp.toPx())
+        )
+    }
+}
+
+@Composable
+fun NativeAdPlaceholder() {
+    Card(
+        modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+        colors = CardDefaults.cardColors(containerColor = Color(0xFFFFF9C4)), // Light Yellow
+        elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+        shape = RoundedCornerShape(12.dp)
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(16.dp),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier.size(48.dp).background(Color(0xFFFFD54F), RoundedCornerShape(8.dp)),
+                contentAlignment = Alignment.Center
+            ) {
+                Text("Ad", color = Color.White, fontWeight = FontWeight.Bold)
+            }
+            Spacer(modifier = Modifier.width(16.dp))
+            Column {
+                Text("Investasi Pintar 2026", style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = Color(0xFFF57F17))
+                Text("Buka tabungan emas digital sekarang dengan promo cashback 50%.", style = MaterialTheme.typography.bodySmall, color = Color.DarkGray)
             }
         }
     }

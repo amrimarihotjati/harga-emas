@@ -1,3 +1,4 @@
+@file:Suppress("DEPRECATION")
 package us.goldprice.hargaemas.presentation.navigation
 
 import androidx.compose.foundation.layout.padding
@@ -83,7 +84,18 @@ fun AppNavigation(viewModel: MainViewModel, simulationViewModel: us.goldprice.ha
             modifier = Modifier.padding(innerPadding)
         ) {
             composable(Screen.Home.route) {
-                HomeScreen(viewModel)
+                HomeScreen(
+                    viewModel = viewModel,
+                    onNavigateToSimulation = {
+                        navController.navigate(Screen.Simulation.route) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                    }
+                )
             }
             composable(Screen.Compare.route) {
                 CompareScreen(viewModel)

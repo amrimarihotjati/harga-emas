@@ -17,3 +17,9 @@ data class GoldData(
     @SerializedName("vendor") val vendor: String,
     @SerializedName("prices") val prices: List<PriceInfo>
 )
+
+data class HistoryItem(
+    @SerializedName("date") val date: String,
+    @SerializedName("buy_price") val buyPrice: Long,
+    @SerializedName("sell_price") val sellPrice: Long
+)

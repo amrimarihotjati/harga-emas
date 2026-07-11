@@ -2,6 +2,7 @@ package us.goldprice.hargaemas.data
 
 import retrofit2.http.GET
 import us.goldprice.hargaemas.domain.GoldData
+import us.goldprice.hargaemas.domain.HistoryItem
 
 data class AdConfig(
     val interstitial_id: String,
@@ -19,4 +20,7 @@ interface GoldApiService {
     
     @GET("ad_config.json")
     suspend fun getAdConfig(): AdConfig
+    
+    @GET("history.json")
+    suspend fun getHistory(): List<HistoryItem>
 }

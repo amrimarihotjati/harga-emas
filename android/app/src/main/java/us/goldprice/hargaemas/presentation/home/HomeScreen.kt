@@ -109,6 +109,11 @@ fun HomeScreen(
                                 
                                 item { SummaryCardsRow(oneGramPrices) }
                                 
+                                if (state.historyData.isNotEmpty()) {
+                                    item { Spacer(Modifier.height(16.dp)) }
+                                    item { us.goldprice.hargaemas.presentation.components.HistoryChart(historyData = state.historyData) }
+                                }
+                                
                                 if (adConfig?.show_native_on_home == true) {
                                     item {
                                         Spacer(Modifier.height(16.dp))

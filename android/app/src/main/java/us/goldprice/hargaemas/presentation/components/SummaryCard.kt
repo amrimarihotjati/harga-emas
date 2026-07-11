@@ -22,13 +22,16 @@ import java.text.NumberFormat
 import java.util.*
 
 @Composable
-fun SummaryCard(price: PriceInfo) {
+fun SummaryCard(price: PriceInfo, showBuyPrice: Boolean = false) {
     val name = vendorDisplayName(price.unit)
     val isUp = price.trend == "up" || price.changeNominal >= 0
     val trendColor = if (isUp) Success else Error
     val formatRp = NumberFormat.getNumberInstance(Locale("id", "ID")).apply { maximumFractionDigits = 0 }
     val pct = if (price.sellPrice > 0) String.format(Locale.US, "%.1f%%", (price.changeNominal.toDouble() / price.sellPrice) * 100) else "0.0%"
     val iconRes = getVendorIconRes(price.unit)
+    
+    val displayPrice = if (showBuyPrice) price.buyPrice else price.sellPrice
+    val priceLabel = if (showBuyPrice) "Harga Beli (Buyback)" else "Harga Jual"
 
     Card(
         Modifier.fillMaxWidth(),
@@ -50,11 +53,12 @@ fun SummaryCard(price: PriceInfo) {
             }
             Spacer(Modifier.height(12.dp))
             Text(
-                "Rp${formatRp.format(price.sellPrice)}", 
+                "Rp${formatRp.format(displayPrice)}", 
                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), 
                 color = Primary,
                 maxLines = 1
             )
+            Text(priceLabel, style = MaterialTheme.typography.labelSmall, color = Outline)
             Spacer(Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(

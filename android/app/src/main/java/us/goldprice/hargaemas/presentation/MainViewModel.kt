@@ -10,7 +10,11 @@ import us.goldprice.hargaemas.domain.GoldData
 
 sealed interface MainUiState {
     object Loading : MainUiState
-    data class Success(val data: GoldData, val adConfig: us.goldprice.hargaemas.data.AdConfig? = null) : MainUiState
+    data class Success(
+        val data: GoldData, 
+        val adConfig: us.goldprice.hargaemas.data.AdConfig? = null,
+        val historyData: List<us.goldprice.hargaemas.domain.HistoryItem> = emptyList()
+    ) : MainUiState
     data class Error(val message: String) : MainUiState
 }
 
@@ -31,7 +35,8 @@ class MainViewModel(private val repository: GoldRepository) : ViewModel() {
                 result.fold(
                     onSuccess = { data ->
                         val adConfig = try { repository.fetchAdConfig() } catch (e: Exception) { null }
-                        _uiState.value = MainUiState.Success(data, adConfig)
+                        val history = try { repository.fetchHistory() } catch (e: Exception) { emptyList() }
+                        _uiState.value = MainUiState.Success(data, adConfig, history)
                     },
                     onFailure = { error ->
                         // If we already have Success state (from cache), don't overwrite with Error

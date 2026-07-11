@@ -60,4 +60,21 @@ class GoldRepository(
             }
         }
     }
+
+    private val HISTORY_CACHE_KEY = "history_data_cache"
+
+    suspend fun fetchHistory(): List<us.goldprice.hargaemas.domain.HistoryItem> {
+        val cachedJson = sharedPrefs.getString(HISTORY_CACHE_KEY, null)
+        return try {
+            val networkData = api.getHistory()
+            sharedPrefs.edit().putString(HISTORY_CACHE_KEY, gson.toJson(networkData)).apply()
+            networkData
+        } catch (e: Exception) {
+            if (cachedJson != null) {
+                gson.fromJson(cachedJson, Array<us.goldprice.hargaemas.domain.HistoryItem>::class.java).toList()
+            } else {
+                emptyList()
+            }
+        }
+    }
 }

@@ -3,9 +3,7 @@ package us.goldprice.hargaemas.presentation.onegram
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.grid.GridCells
-import androidx.compose.foundation.lazy.grid.GridItemSpan
-import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
+import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -21,9 +19,15 @@ import us.goldprice.hargaemas.presentation.MainViewModel
 import us.goldprice.hargaemas.presentation.components.SummaryCard
 import us.goldprice.hargaemas.theme.*
 
+enum class PriceType { SELL, BUY }
+enum class SortOrder { CHEAPEST, EXPENSIVE, RANDOM }
+
 @Composable
 fun OneGramScreen(viewModel: MainViewModel) {
     val uiState by viewModel.uiState.collectAsState()
+
+    var selectedPriceType by remember { mutableStateOf(PriceType.SELL) }
+    var selectedSortOrder by remember { mutableStateOf(SortOrder.CHEAPEST) }
 
     Box(Modifier.fillMaxSize().background(Background)) {
         Column(Modifier.fillMaxSize()) {
@@ -52,40 +56,103 @@ fun OneGramScreen(viewModel: MainViewModel) {
 
                     Column(Modifier.fillMaxSize()) {
                         // Header
-                        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(top = 16.dp, bottom = 16.dp)) {
+                        Column(Modifier.fillMaxWidth().padding(horizontal = 20.dp).padding(top = 16.dp, bottom = 12.dp)) {
                             Text("Harga 1 Gram", style = MaterialTheme.typography.headlineMedium, color = OnSurface)
                             Spacer(Modifier.height(4.dp))
                             Text("Perbandingan kepingan 1 gram dari semua merek", style = MaterialTheme.typography.bodyMedium, color = Outline)
                         }
+
+                        // Filter & Sorting Row
+                        Row(
+                            Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 8.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = selectedPriceType == PriceType.SELL,
+                                onClick = { selectedPriceType = PriceType.SELL },
+                                label = { Text("Jual") },
+                                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = PrimaryFixed, selectedLabelColor = OnPrimaryFixed)
+                            )
+                            FilterChip(
+                                selected = selectedPriceType == PriceType.BUY,
+                                onClick = { selectedPriceType = PriceType.BUY },
+                                label = { Text("Beli (Buyback)") },
+                                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = PrimaryFixed, selectedLabelColor = OnPrimaryFixed)
+                            )
+                        }
+
+                        Row(
+                            Modifier.fillMaxWidth().padding(horizontal = 20.dp, vertical = 4.dp),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            FilterChip(
+                                selected = selectedSortOrder == SortOrder.CHEAPEST,
+                                onClick = { selectedSortOrder = SortOrder.CHEAPEST },
+                                label = { Text("Termurah") },
+                                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = PrimaryFixed, selectedLabelColor = OnPrimaryFixed)
+                            )
+                            FilterChip(
+                                selected = selectedSortOrder == SortOrder.EXPENSIVE,
+                                onClick = { selectedSortOrder = SortOrder.EXPENSIVE },
+                                label = { Text("Termahal") },
+                                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = PrimaryFixed, selectedLabelColor = OnPrimaryFixed)
+                            )
+                            FilterChip(
+                                selected = selectedSortOrder == SortOrder.RANDOM,
+                                onClick = { selectedSortOrder = SortOrder.RANDOM },
+                                label = { Text("Acak") },
+                                colors = FilterChipDefaults.filterChipColors(selectedContainerColor = PrimaryFixed, selectedLabelColor = OnPrimaryFixed)
+                            )
+                        }
+                        
+                        Spacer(Modifier.height(8.dp))
 
                         if (oneGramPrices.isEmpty()) {
                             Box(Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                                 Text("Data 1 gram tidak tersedia.", color = Outline)
                             }
                         } else {
-                            // Using LazyVerticalGrid with 2 columns
-                            LazyVerticalGrid(
-                                columns = GridCells.Fixed(2),
+                            // Apply Sorting
+                            var displayPrices = when(selectedSortOrder) {
+                                SortOrder.CHEAPEST -> oneGramPrices.sortedBy { if (selectedPriceType == PriceType.SELL) it.sellPrice else it.buyPrice }
+                                SortOrder.EXPENSIVE -> oneGramPrices.sortedByDescending { if (selectedPriceType == PriceType.SELL) it.sellPrice else it.buyPrice }
+                                SortOrder.RANDOM -> oneGramPrices // For simplicity we won't truly shuffle on every recomposition unless we save state, but simple is fine.
+                            }
+                            
+                            // Real random logic to avoid recomposition madness:
+                            if (selectedSortOrder == SortOrder.RANDOM) {
+                                val seed = data.lastUpdated.hashCode()
+                                displayPrices = oneGramPrices.shuffled(java.util.Random(seed.toLong()))
+                            }
+
+                            // Use LazyColumn with rows of 2 cards
+                            LazyColumn(
                                 contentPadding = PaddingValues(start = 20.dp, end = 20.dp, bottom = 24.dp),
-                                horizontalArrangement = Arrangement.spacedBy(12.dp),
-                                verticalArrangement = Arrangement.spacedBy(12.dp),
                                 modifier = Modifier.fillMaxSize()
                             ) {
-                                // We iterate through items. Every 4 items, we insert an Ad spanning both columns.
-                                // We can use item/items logic.
-                                val chunkedPrices = oneGramPrices.chunked(4)
+                                val chunkedPrices = displayPrices.chunked(2)
+                                val showBuy = selectedPriceType == PriceType.BUY
                                 
-                                chunkedPrices.forEachIndexed { index, chunk ->
-                                    // Add the 4 (or less) cards
-                                    items(chunk.size) { i ->
-                                        SummaryCard(price = chunk[i])
+                                chunkedPrices.forEachIndexed { index, rowItems ->
+                                    item {
+                                        Row(Modifier.fillMaxWidth().padding(bottom = 12.dp), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+                                            Box(Modifier.weight(1f)) {
+                                                SummaryCard(price = rowItems[0], showBuyPrice = showBuy)
+                                            }
+                                            if (rowItems.size > 1) {
+                                                Box(Modifier.weight(1f)) {
+                                                    SummaryCard(price = rowItems[1], showBuyPrice = showBuy)
+                                                }
+                                            } else {
+                                                Spacer(Modifier.weight(1f))
+                                            }
+                                        }
                                     }
                                     
-                                    // Add Native Ad if there's config and we are not at the very end
-                                    // Or even at the end, it's fine. We will add an ad after every 4 cards.
-                                    if (adConfig?.show_native_on_home == true) {
-                                        item(span = { GridItemSpan(2) }) {
-                                            Box(Modifier.fillMaxWidth().padding(vertical = 4.dp).clip(RoundedCornerShape(12.dp))) {
+                                    // Insert Native Ad every 2 rows (4 items)
+                                    if ((index + 1) % 2 == 0 && adConfig?.show_native_on_home == true) {
+                                        item {
+                                            Box(Modifier.fillMaxWidth().padding(vertical = 4.dp).padding(bottom = 12.dp).clip(RoundedCornerShape(12.dp))) {
                                                 NativeAdViewComposable(context = LocalContext.current, config = adConfig)
                                             }
                                         }

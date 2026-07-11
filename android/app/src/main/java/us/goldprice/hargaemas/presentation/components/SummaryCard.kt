@@ -41,14 +41,26 @@ fun SummaryCard(price: PriceInfo, showBuyPrice: Boolean = false) {
     ) {
         Column(Modifier.padding(16.dp)) {
             Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.weight(1f)) {
                     if (iconRes != null) {
                         Image(painterResource(iconRes), contentDescription = name, modifier = Modifier.size(24.dp).clip(CircleShape))
                     }
-                    Text(name, style = MaterialTheme.typography.labelLarge, color = OnSurface)
+                    androidx.compose.material3.Text(
+                        text = name, 
+                        style = MaterialTheme.typography.labelLarge, 
+                        color = OnSurface, 
+                        maxLines = 1, 
+                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                    )
                 }
+                Spacer(Modifier.width(8.dp))
                 Box(Modifier.clip(RoundedCornerShape(6.dp)).background(trendColor.copy(alpha = 0.1f)).padding(horizontal = 6.dp, vertical = 3.dp)) {
-                    Text(if (isUp) "↑ $pct" else "↓ $pct", style = MaterialTheme.typography.labelMedium, color = trendColor)
+                    androidx.compose.material3.Text(
+                        text = if (isUp) "↑ $pct" else "↓ $pct", 
+                        style = MaterialTheme.typography.labelMedium, 
+                        color = trendColor,
+                        maxLines = 1
+                    )
                 }
             }
             Spacer(Modifier.height(12.dp))

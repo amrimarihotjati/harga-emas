@@ -54,6 +54,7 @@ fun HomeScreen(
     val uiState by viewModel.uiState.collectAsState()
     val portfolioResult by simulationViewModel.portfolioResult.collectAsState()
     
+    var userSelectedVendor by remember { mutableStateOf<String?>(null) }
     val ptrState = rememberPullToRefreshState()
     
     // Automatically finish the refresh animation when state is no longer Loading
@@ -95,6 +96,10 @@ fun HomeScreen(
                             val allPrices = data.prices
                             val oneGramPrices = allPrices.filter { it.weight == "1" || it.weight == "1.0" }
                             val adConfig = state.adConfig
+                            val allVendors = allPrices.map { it.unit }.distinct()
+                            
+                            val defaultVendor = allVendors.find { it.contains("antam", true) && !it.contains("retro", true) && !it.contains("pegadaian", true) } ?: allVendors.firstOrNull() ?: ""
+                            val selectedVendor = userSelectedVendor ?: defaultVendor
 
                             if (oneGramPrices.isNotEmpty()) {
                                 item { PageHeader("Harga Emas", "Pantau harga emas real-time hari ini", formatIndonesianDate(data.lastUpdated)) }
@@ -109,11 +114,6 @@ fun HomeScreen(
                                 
                                 item { SummaryCardsRow(oneGramPrices) }
                                 
-                                if (state.historyData.isNotEmpty()) {
-                                    item { Spacer(Modifier.height(16.dp)) }
-                                    item { us.goldprice.hargaemas.presentation.components.HistoryChart(historyData = state.historyData) }
-                                }
-                                
                                 if (adConfig?.show_native_on_home == true) {
                                     item {
                                         Spacer(Modifier.height(16.dp))
@@ -124,7 +124,19 @@ fun HomeScreen(
                                 }
                                 
                                 item { Spacer(Modifier.height(24.dp)) }
-                                item { VendorTableSection(allPrices) }
+                                item { 
+                                    VendorTableSection(
+                                        allPrices = allPrices,
+                                        selectedVendor = selectedVendor,
+                                        onVendorChange = { userSelectedVendor = it }
+                                    ) 
+                                }
+                                
+                                if (state.historyData.isNotEmpty()) {
+                                    item { Spacer(Modifier.height(24.dp)) }
+                                    item { us.goldprice.hargaemas.presentation.components.HistoryChart(historyData = state.historyData, selectedVendor = selectedVendor) }
+                                }
+                                
                                 item { Spacer(Modifier.height(24.dp)) }
                                 item { SimulatorBanner(onNavigateToSimulation) }
                                 
@@ -223,9 +235,12 @@ fun SummaryCardsRow(oneGramPrices: List<PriceInfo>) {
 // ── Vendor Table ────────────────────────────────────────────
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun VendorTableSection(allPrices: List<PriceInfo>) {
+fun VendorTableSection(
+    allPrices: List<PriceInfo>, 
+    selectedVendor: String, 
+    onVendorChange: (String) -> Unit
+) {
     val allVendors = allPrices.map { it.unit }.distinct()
-    var selectedVendor by remember { mutableStateOf(allVendors.find { it.contains("antam", true) && !it.contains("retro", true) && !it.contains("pegadaian", true) } ?: allVendors.firstOrNull() ?: "") }
     var searchQuery by remember { mutableStateOf("") }
     var dropdownExpanded by remember { mutableStateOf(false) }
 
@@ -301,7 +316,7 @@ fun VendorTableSection(allPrices: List<PriceInfo>) {
                                 Text(vName)
                             }
                         },
-                        onClick = { selectedVendor = v; dropdownExpanded = false }
+                        onClick = { onVendorChange(v); dropdownExpanded = false }
                     )
                 }
             }

@@ -221,119 +221,124 @@ fun ShareableCanvasContent(
     Column(
         Modifier
             .fillMaxWidth()
-            .background(goldGradient)
-            .padding(vertical = 24.dp)
+            .aspectRatio(9f / 16f) // Force Instagram Story / WhatsApp Status aspect ratio
+            .background(goldGradient),
+        verticalArrangement = Arrangement.SpaceBetween
     ) {
-        // App Logo & Title
-        Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-            Icon(Icons.Default.WorkspacePremium, contentDescription = null, tint = headerBlue, modifier = Modifier.size(32.dp))
-            Spacer(Modifier.width(8.dp))
-            Text("Harga Emas Hari Ini", style = MaterialTheme.typography.titleMedium, color = headerBlue, fontWeight = FontWeight.Bold)
-        }
-        
-        Spacer(Modifier.height(16.dp))
-        
-        // Huge Title
-        Text(
-            "HARGA EMAS HARI INI",
-            style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Black, fontSize = 28.sp),
-            color = headerBlue,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
-        )
-        
-        Spacer(Modifier.height(4.dp))
-        Text(
-            dateStr,
-            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
-            color = Color.DarkGray,
-            textAlign = TextAlign.Center,
-            modifier = Modifier.fillMaxWidth()
-        )
-        
-        Spacer(Modifier.height(24.dp))
-        
-        // Table Header
-        Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
-            Text("BERAT", modifier = Modifier.weight(0.2f), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = headerBlue, textAlign = TextAlign.Center)
-            
-            Row(Modifier.weight(0.4f), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                Text(vendorDisplayName(vendor1).uppercase(), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = headerBlue)
-                Spacer(Modifier.width(4.dp))
-                val icon1 = getVendorIconRes(vendor1)
-                if (icon1 != null) Image(painterResource(icon1), null, modifier = Modifier.size(16.dp))
+        Column(
+            Modifier
+                .fillMaxWidth()
+                .padding(top = 40.dp, bottom = 16.dp)
+        ) {
+            // App Logo & Title
+            Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                Icon(Icons.Default.WorkspacePremium, contentDescription = null, tint = headerBlue, modifier = Modifier.size(32.dp))
+                Spacer(Modifier.width(8.dp))
+                Text("Harga Emas Hari Ini", style = MaterialTheme.typography.titleMedium, color = headerBlue, fontWeight = FontWeight.Bold)
             }
             
-            Row(Modifier.weight(0.4f), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-                Text(vendorDisplayName(vendor2).uppercase(), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = headerBlue)
-                Spacer(Modifier.width(4.dp))
-                val icon2 = getVendorIconRes(vendor2)
-                if (icon2 != null) Image(painterResource(icon2), null, modifier = Modifier.size(16.dp))
-            }
+            Spacer(Modifier.height(24.dp))
+            
+            // Huge Title
+            Text(
+                "HARGA EMAS HARI INI",
+                style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.Black, fontSize = 32.sp),
+                color = headerBlue,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp)
+            )
+            
+            Spacer(Modifier.height(8.dp))
+            Text(
+                dateStr,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                color = Color.DarkGray,
+                textAlign = TextAlign.Center,
+                modifier = Modifier.fillMaxWidth()
+            )
         }
         
-        Spacer(Modifier.height(8.dp))
-        
-        // Table Rows
-        val prices1 = allPrices.filter { it.unit == vendor1 }
-        val prices2 = allPrices.filter { it.unit == vendor2 }
-        
-        weights.forEachIndexed { index, w ->
-            val p1 = prices1.find { it.weight == w || it.weight == "$w.0" }
-            val p2 = prices2.find { it.weight == w || it.weight == "$w.0" }
+        Column(Modifier.fillMaxWidth().weight(1f), verticalArrangement = Arrangement.Center) {
+            // Table Header
+            Row(Modifier.fillMaxWidth().padding(horizontal = 16.dp), verticalAlignment = Alignment.CenterVertically) {
+                Text("BERAT", modifier = Modifier.weight(0.2f), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = headerBlue, textAlign = TextAlign.Center)
+                
+                Row(Modifier.weight(0.4f), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                    Text(vendorDisplayName(vendor1).uppercase(), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = headerBlue)
+                    Spacer(Modifier.width(4.dp))
+                    val icon1 = getVendorIconRes(vendor1)
+                    if (icon1 != null) Image(painterResource(icon1), null, modifier = Modifier.size(16.dp))
+                }
+                
+                Row(Modifier.weight(0.4f), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
+                    Text(vendorDisplayName(vendor2).uppercase(), style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold, color = headerBlue)
+                    Spacer(Modifier.width(4.dp))
+                    val icon2 = getVendorIconRes(vendor2)
+                    if (icon2 != null) Image(painterResource(icon2), null, modifier = Modifier.size(16.dp))
+                }
+            }
             
-            // Draw row if at least one vendor has price
-            if (p1 != null || p2 != null) {
-                val rowBg = if (index % 2 == 0) Color.Transparent else rowAltBg
-                Row(
-                    Modifier.fillMaxWidth().background(rowBg).padding(horizontal = 16.dp, vertical = 8.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text("${w.replace(".0", "")} gr", modifier = Modifier.weight(0.2f), style = MaterialTheme.typography.bodyMedium, fontWeight = FontWeight.Bold, color = Color.Black, textAlign = TextAlign.Center)
-                    
-                    Text(
-                        if (p1 != null && p1.sellPrice > 0) "Rp ${formatRp.format(p1.sellPrice)}" else "-",
-                        modifier = Modifier.weight(0.4f),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Black,
-                        textAlign = TextAlign.Center
-                    )
-                    
-                    Text(
-                        if (p2 != null && p2.sellPrice > 0) "Rp ${formatRp.format(p2.sellPrice)}" else "-",
-                        modifier = Modifier.weight(0.4f),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = Color.Black,
-                        textAlign = TextAlign.Center
-                    )
+            Spacer(Modifier.height(16.dp))
+            
+            // Table Rows
+            val prices1 = allPrices.filter { it.unit == vendor1 }
+            val prices2 = allPrices.filter { it.unit == vendor2 }
+            
+            weights.forEachIndexed { index, w ->
+                val p1 = prices1.find { it.weight == w || it.weight == "$w.0" }
+                val p2 = prices2.find { it.weight == w || it.weight == "$w.0" }
+                
+                // Draw row if at least one vendor has price
+                if (p1 != null || p2 != null) {
+                    val rowBg = if (index % 2 == 0) Color.Transparent else rowAltBg
+                    Row(
+                        Modifier.fillMaxWidth().background(rowBg).padding(horizontal = 16.dp, vertical = 12.dp),
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text("${w.replace(".0", "")} gr", modifier = Modifier.weight(0.2f), style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold, color = Color.Black, textAlign = TextAlign.Center)
+                        
+                        Text(
+                            if (p1 != null && p1.sellPrice > 0) "Rp ${formatRp.format(p1.sellPrice)}" else "-",
+                            modifier = Modifier.weight(0.4f),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.Black,
+                            textAlign = TextAlign.Center
+                        )
+                        
+                        Text(
+                            if (p2 != null && p2.sellPrice > 0) "Rp ${formatRp.format(p2.sellPrice)}" else "-",
+                            modifier = Modifier.weight(0.4f),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = Color.Black,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             }
         }
         
-        Spacer(Modifier.height(24.dp))
-        
         // Footer Bar
         Row(
-            Modifier.fillMaxWidth().background(headerBlue).padding(horizontal = 16.dp, vertical = 12.dp),
+            Modifier.fillMaxWidth().background(headerBlue).padding(horizontal = 24.dp, vertical = 20.dp),
             horizontalArrangement = Arrangement.SpaceBetween,
             verticalAlignment = Alignment.CenterVertically
         ) {
             Column(modifier = Modifier.weight(1f)) {
                 if (userName.isNotEmpty()) {
-                    Text(userName, color = Color.White, style = MaterialTheme.typography.labelLarge, fontWeight = FontWeight.Bold)
+                    Text(userName, color = Color.White, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 }
                 if (userPhone.isNotEmpty()) {
-                    Text("WA: $userPhone", color = Color.White, style = MaterialTheme.typography.labelMedium)
+                    Text("WA: $userPhone", color = Color.White, style = MaterialTheme.typography.titleSmall)
                 }
                 if (userName.isEmpty() && userPhone.isEmpty()) {
-                    Text("Download on Playstore", color = Color.White, style = MaterialTheme.typography.labelMedium)
-                    Text("Aplikasi Harga Emas Hari Ini", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                    Text("Download on Playstore", color = Color.White, style = MaterialTheme.typography.titleSmall)
+                    Text("Aplikasi Harga Emas Hari Ini", color = Color.White, style = MaterialTheme.typography.bodySmall)
                 }
             }
             if (userName.isNotEmpty() || userPhone.isNotEmpty()) {
                 Column(horizontalAlignment = Alignment.End) {
-                    Text("Download on Playstore", color = Color.White, style = MaterialTheme.typography.labelMedium)
-                    Text("Aplikasi Harga Emas Hari Ini", color = Color.White, style = MaterialTheme.typography.labelSmall)
+                    Text("Download on Playstore", color = Color.White, style = MaterialTheme.typography.titleSmall)
+                    Text("Aplikasi Harga Emas Hari Ini", color = Color.White, style = MaterialTheme.typography.bodySmall)
                 }
             }
         }

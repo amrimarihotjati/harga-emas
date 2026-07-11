@@ -33,6 +33,7 @@ import us.goldprice.hargaemas.presentation.components.shimmerEffect
 import us.goldprice.hargaemas.presentation.components.vendorDisplayName
 import us.goldprice.hargaemas.theme.*
 import java.text.NumberFormat
+import java.text.SimpleDateFormat
 import java.util.*
 
 import androidx.compose.animation.Crossfade
@@ -95,7 +96,7 @@ fun HomeScreen(
                             val adConfig = state.adConfig
 
                             if (oneGramPrices.isNotEmpty()) {
-                                item { PageHeader("Harga Emas", "Pantau harga emas real-time hari ini", data.lastUpdated) }
+                                item { PageHeader("Harga Emas", "Pantau harga emas real-time hari ini", formatIndonesianDate(data.lastUpdated)) }
                                 
                                 item {
                                     HomePortfolioCard(
@@ -240,7 +241,12 @@ fun SummaryCard(price: PriceInfo) {
                 }
             }
             Spacer(Modifier.height(12.dp))
-            Text("Rp${formatRp.format(price.sellPrice)}", style = MaterialTheme.typography.headlineMedium, color = Primary)
+            Text(
+                "Rp${formatRp.format(price.sellPrice)}", 
+                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold), 
+                color = Primary,
+                maxLines = 1
+            )
             Spacer(Modifier.height(4.dp))
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Icon(
@@ -446,5 +452,17 @@ fun ShimmerPlaceholder() {
             Box(Modifier.weight(1f).height(100.dp).clip(RoundedCornerShape(16.dp)).shimmerEffect())
         }
         Box(Modifier.fillMaxWidth().height(300.dp).clip(RoundedCornerShape(16.dp)).shimmerEffect())
+    }
+}
+
+fun formatIndonesianDate(dateString: String): String {
+    try {
+        // Format of data.lastUpdated is "2026-07-11 02:00:00"
+        val parser = SimpleDateFormat("yyyy-MM-dd HH:mm:ss", Locale("id", "ID"))
+        val date = parser.parse(dateString) ?: return "Update Harga: $dateString"
+        val formatter = SimpleDateFormat("'Update Harga hari' EEEE 'tanggal' d MMMM yyyy', pukul' HH:mm 'WIB'", Locale("id", "ID"))
+        return formatter.format(date)
+    } catch (e: Exception) {
+        return "Update Harga: $dateString"
     }
 }

@@ -2,10 +2,62 @@ package us.goldprice.hargaemas.data
 
 import us.goldprice.hargaemas.domain.GoldData
 
-class GoldRepository(private val api: GoldApiService) {
+import android.content.SharedPreferences
+import com.google.gson.Gson
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
+
+class GoldRepository(
+    private val api: GoldApiService,
+    private val sharedPrefs: SharedPreferences
+) {
+    private val gson = Gson()
+    private val CACHE_KEY = "gold_data_cache"
+    private val AD_CACHE_KEY = "ad_config_cache"
+
+    fun fetchGoldPricesFlow(): Flow<Result<GoldData>> = flow {
+        // 1. Emit cached data first if available
+        val cachedJson = sharedPrefs.getString(CACHE_KEY, null)
+        if (cachedJson != null) {
+            try {
+                val cachedData = gson.fromJson(cachedJson, GoldData::class.java)
+                emit(Result.success(cachedData))
+            } catch (e: Exception) {
+                // Ignore parse errors
+            }
+        }
+
+        // 2. Fetch from network
+        try {
+            val networkData = api.getGoldPrices()
+            // Save to cache
+            sharedPrefs.edit().putString(CACHE_KEY, gson.toJson(networkData)).apply()
+            // Emit fresh data
+            emit(Result.success(networkData))
+        } catch (e: Exception) {
+            // Only emit failure if we don't have cache
+            if (cachedJson == null) {
+                emit(Result.failure(e))
+            }
+        }
+    }
+
     suspend fun fetchGoldPrices(): GoldData {
         return api.getGoldPrices()
     }
 
-    suspend fun fetchAdConfig() = api.getAdConfig()
+    suspend fun fetchAdConfig(): AdConfig {
+        val cachedJson = sharedPrefs.getString(AD_CACHE_KEY, null)
+        return try {
+            val networkData = api.getAdConfig()
+            sharedPrefs.edit().putString(AD_CACHE_KEY, gson.toJson(networkData)).apply()
+            networkData
+        } catch (e: Exception) {
+            if (cachedJson != null) {
+                gson.fromJson(cachedJson, AdConfig::class.java)
+            } else {
+                throw e
+            }
+        }
+    }
 }

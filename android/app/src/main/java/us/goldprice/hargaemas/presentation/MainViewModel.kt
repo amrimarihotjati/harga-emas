@@ -24,13 +24,22 @@ class MainViewModel(private val repository: GoldRepository) : ViewModel() {
 
     fun fetchData() {
         viewModelScope.launch {
-            _uiState.value = MainUiState.Loading
-            try {
-                val result = repository.fetchGoldPrices()
-                val adConfig = try { repository.fetchAdConfig() } catch (e: Exception) { null }
-                _uiState.value = MainUiState.Success(result, adConfig)
-            } catch (e: Exception) {
-                _uiState.value = MainUiState.Error(e.message ?: "Unknown error")
+            if (_uiState.value !is MainUiState.Success) {
+                _uiState.value = MainUiState.Loading
+            }
+            repository.fetchGoldPricesFlow().collect { result ->
+                result.fold(
+                    onSuccess = { data ->
+                        val adConfig = try { repository.fetchAdConfig() } catch (e: Exception) { null }
+                        _uiState.value = MainUiState.Success(data, adConfig)
+                    },
+                    onFailure = { error ->
+                        // If we already have Success state (from cache), don't overwrite with Error
+                        if (_uiState.value !is MainUiState.Success) {
+                            _uiState.value = MainUiState.Error(error.message ?: "Unknown error")
+                        }
+                    }
+                )
             }
         }
     }

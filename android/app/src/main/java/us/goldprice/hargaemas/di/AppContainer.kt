@@ -6,8 +6,15 @@ import us.goldprice.hargaemas.data.GoldApiService
 import us.goldprice.hargaemas.data.GoldRepository
 import us.goldprice.hargaemas.domain.usecase.*
 
-class AppContainer {
+import android.content.Context
+import android.content.SharedPreferences
+
+class AppContainer(private val context: Context) {
     private val BASE_URL = "https://code.amrimarihotjati.workers.dev/harga-emas/"
+    
+    val sharedPreferences: SharedPreferences by lazy {
+        context.getSharedPreferences("harga_emas_prefs", Context.MODE_PRIVATE)
+    }
     
     private val retrofit = Retrofit.Builder()
         .addConverterFactory(GsonConverterFactory.create())
@@ -19,7 +26,7 @@ class AppContainer {
     }
 
     val goldRepository: GoldRepository by lazy {
-        GoldRepository(retrofitService)
+        GoldRepository(retrofitService, sharedPreferences)
     }
 
     val calculateSellUseCase: CalculateSellUseCase by lazy {

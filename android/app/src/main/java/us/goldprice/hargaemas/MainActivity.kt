@@ -27,7 +27,7 @@ class MainActivity : ComponentActivity() {
         MobileAds.initialize(this) {}
         
         // Manual DI initialized here
-        val appContainer = AppContainer()
+        val appContainer = AppContainer(applicationContext)
         val viewModel = MainViewModel(appContainer.goldRepository)
         
         val simulationViewModel = us.goldprice.hargaemas.presentation.simulation.SimulationViewModel(

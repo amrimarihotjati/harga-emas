@@ -35,6 +35,13 @@ import us.goldprice.hargaemas.theme.*
 import java.text.NumberFormat
 import java.util.*
 
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
+import androidx.compose.material3.pulltorefresh.PullToRefreshContainer
+import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: MainViewModel,
@@ -44,61 +51,95 @@ fun HomeScreen(
 ) {
     val uiState by viewModel.uiState.collectAsState()
     val portfolioResult by simulationViewModel.portfolioResult.collectAsState()
+    
+    val ptrState = rememberPullToRefreshState()
+    
+    // Automatically finish the refresh animation when state is no longer Loading
+    if (ptrState.isRefreshing && uiState !is MainUiState.Loading) {
+        LaunchedEffect(uiState) {
+            ptrState.endRefresh()
+        }
+    }
 
-    Box(Modifier.fillMaxSize().background(Background)) {
+    Box(Modifier.fillMaxSize().background(Background).nestedScroll(ptrState.nestedScrollConnection)) {
         Column(Modifier.fillMaxSize()) {
-            LazyColumn(
-                modifier = Modifier.fillMaxWidth().weight(1f),
-                contentPadding = PaddingValues(bottom = 24.dp)
-            ) {
-                when (val state = uiState) {
-                is MainUiState.Loading -> { item { ShimmerPlaceholder() } }
-                is MainUiState.Error -> {
-                    item {
-                        Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
-                            Text("Gagal memuat data: ${state.message}", color = Error)
-                        }
-                    }
-                }
-                is MainUiState.Success -> {
-                    val data = state.data
-                    val allPrices = data.prices
-                    val oneGramPrices = allPrices.filter { it.weight == "1" || it.weight == "1.0" }
-                    val adConfig = state.adConfig
-
-                    if (oneGramPrices.isNotEmpty()) {
-                        item { PageHeader("Harga Emas", "Pantau harga emas real-time hari ini", data.lastUpdated) }
-                        
-                        item {
-                            HomePortfolioCard(
-                                portfolioResult = portfolioResult,
-                                onNavigateToPortfolio = onNavigateToPortfolio
-                            )
-                        }
-                        item { Spacer(Modifier.height(16.dp)) }
-                        
-                        item { SummaryCardsRow(oneGramPrices) }
-                        
-                        if (adConfig?.show_native_on_home == true) {
+            Crossfade(
+                targetState = uiState,
+                animationSpec = tween(500),
+                label = "HomeScreenStateAnim",
+                modifier = Modifier.weight(1f)
+            ) { state ->
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    contentPadding = PaddingValues(bottom = 24.dp)
+                ) {
+                    when (state) {
+                        is MainUiState.Loading -> { item { ShimmerPlaceholder() } }
+                        is MainUiState.Error -> {
                             item {
-                                Spacer(Modifier.height(16.dp))
-                                Box(Modifier.fillMaxWidth().padding(horizontal = 20.dp).clip(RoundedCornerShape(12.dp))) {
-                                    NativeAdViewComposable(context = LocalContext.current, config = adConfig)
+                                Box(Modifier.fillMaxWidth().padding(32.dp), contentAlignment = Alignment.Center) {
+                                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                                        Text("Gagal memuat data: ${state.message}", color = Error)
+                                        Spacer(Modifier.height(16.dp))
+                                        Button(onClick = { viewModel.fetchData() }) {
+                                            Text("Coba Lagi")
+                                        }
+                                    }
                                 }
                             }
                         }
-                        
-                        item { Spacer(Modifier.height(24.dp)) }
-                        item { VendorTableSection(allPrices) }
-                        item { Spacer(Modifier.height(24.dp)) }
-                        item { SimulatorBanner(onNavigateToSimulation) }
-                        
-                    } // end if
-                } // end is MainUiState.Success
-            } // end when
-        } // end LazyColumn
-    } // end Column
-} // end Box
+                        is MainUiState.Success -> {
+                            val data = state.data
+                            val allPrices = data.prices
+                            val oneGramPrices = allPrices.filter { it.weight == "1" || it.weight == "1.0" }
+                            val adConfig = state.adConfig
+
+                            if (oneGramPrices.isNotEmpty()) {
+                                item { PageHeader("Harga Emas", "Pantau harga emas real-time hari ini", data.lastUpdated) }
+                                
+                                item {
+                                    HomePortfolioCard(
+                                        portfolioResult = portfolioResult,
+                                        onNavigateToPortfolio = onNavigateToPortfolio
+                                    )
+                                }
+                                item { Spacer(Modifier.height(16.dp)) }
+                                
+                                item { SummaryCardsRow(oneGramPrices) }
+                                
+                                if (adConfig?.show_native_on_home == true) {
+                                    item {
+                                        Spacer(Modifier.height(16.dp))
+                                        Box(Modifier.fillMaxWidth().padding(horizontal = 20.dp).clip(RoundedCornerShape(12.dp))) {
+                                            NativeAdViewComposable(context = LocalContext.current, config = adConfig)
+                                        }
+                                    }
+                                }
+                                
+                                item { Spacer(Modifier.height(24.dp)) }
+                                item { VendorTableSection(allPrices) }
+                                item { Spacer(Modifier.height(24.dp)) }
+                                item { SimulatorBanner(onNavigateToSimulation) }
+                                
+                            } // end if
+                        } // end is MainUiState.Success
+                    } // end when
+                } // end LazyColumn
+            } // end Crossfade
+        } // end Column
+        
+        // PullToRefresh Indicator overlay
+        PullToRefreshContainer(
+            state = ptrState,
+            modifier = Modifier.align(Alignment.TopCenter),
+        )
+        
+        if (ptrState.isRefreshing) {
+            LaunchedEffect(true) {
+                viewModel.fetchData()
+            }
+        }
+    } // end Box
 } // end fun HomeScreen
 
 // ── Portfolio Summary Card ──────────────────────────────────

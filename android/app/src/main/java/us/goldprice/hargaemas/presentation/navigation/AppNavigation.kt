@@ -38,18 +38,22 @@ import android.app.Activity
 import us.goldprice.hargaemas.presentation.onegram.OneGramScreen
 import androidx.compose.material.icons.filled.WorkspacePremium
 
+import us.goldprice.hargaemas.presentation.share.ShareTableScreen
+import androidx.compose.material.icons.filled.Share
+
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     object Home : Screen("home", "Beranda", Icons.Default.Home)
     object Compare : Screen("compare", "Bandingkan", Icons.Default.CompareArrows)
     object Simulation : Screen("simulation", "Simulasi", Icons.Default.Calculate)
     object Portfolio : Screen("portfolio", "Portofolio", Icons.Default.PieChart)
     object OneGram : Screen("onegram", "1gr", Icons.Default.WorkspacePremium)
+    object ShareTable : Screen("sharetable", "Tabel", Icons.Default.Share)
 }
 
 @Composable
 fun AppNavigation(viewModel: MainViewModel, simulationViewModel: us.goldprice.hargaemas.presentation.simulation.SimulationViewModel) {
     val navController = rememberNavController()
-    val items = listOf(Screen.Home, Screen.Compare, Screen.Simulation, Screen.Portfolio, Screen.OneGram)
+    val items = listOf(Screen.Home, Screen.Compare, Screen.OneGram, Screen.ShareTable, Screen.Portfolio)
     val uiState by viewModel.uiState.collectAsState()
     val adConfig = (uiState as? MainUiState.Success)?.adConfig
     val context = LocalContext.current
@@ -117,6 +121,7 @@ fun AppNavigation(viewModel: MainViewModel, simulationViewModel: us.goldprice.ha
             composable(Screen.Simulation.route) { SimulationScreen(viewModel, simulationViewModel) }
             composable(Screen.Portfolio.route) { PortfolioScreen(viewModel, simulationViewModel) }
             composable(Screen.OneGram.route) { OneGramScreen(viewModel) }
+            composable(Screen.ShareTable.route) { ShareTableScreen(viewModel) }
         }
     }
 }

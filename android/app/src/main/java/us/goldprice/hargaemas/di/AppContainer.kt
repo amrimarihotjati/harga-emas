@@ -7,7 +7,7 @@ import us.goldprice.hargaemas.data.GoldRepository
 import us.goldprice.hargaemas.domain.usecase.*
 
 class AppContainer {
-    private val BASE_URL = "https://raw.githubusercontent.com/amrimarihotjati/harga-emas/main/json/"
+    private val BASE_URL = "https://code.amrimarihotjati.workers.dev/harga-emas/"
     
     private val retrofit = Retrofit.Builder()
         .addConverterFactory(GsonConverterFactory.create())

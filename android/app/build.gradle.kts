@@ -6,10 +6,10 @@ plugins {
 }
 
 android {
-    namespace = "us.goldprice.hargaemas"
+    namespace = "us.goldprice.harga.emas.saldo"
     compileSdk = 35
     defaultConfig {
-        applicationId = "us.goldprice.hargaemas"
+        applicationId = "us.goldprice.harga.emas.saldo"
         minSdk = 24
         targetSdk = 35
         versionCode = 1

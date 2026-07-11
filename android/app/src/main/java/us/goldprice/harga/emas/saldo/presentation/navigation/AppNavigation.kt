@@ -40,6 +40,7 @@ import androidx.compose.material.icons.filled.WorkspacePremium
 
 import us.goldprice.harga.emas.saldo.presentation.share.ShareTableScreen
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.ui.unit.sp
 
 sealed class Screen(val route: String, val title: String, val icon: ImageVector) {
     object Home : Screen("home", "Beranda", Icons.Default.Home)
@@ -74,7 +75,15 @@ fun AppNavigation(viewModel: MainViewModel, simulationViewModel: us.goldprice.ha
                 items.forEach { screen ->
                     NavigationBarItem(
                         icon = { Icon(screen.icon, contentDescription = screen.title) },
-                        label = { Text(screen.title) },
+                        label = { 
+                            Text(
+                                text = screen.title, 
+                                fontSize = 10.sp, 
+                                maxLines = 1, 
+                                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                softWrap = false
+                            ) 
+                        },
                         selected = currentRoute == screen.route,
                         colors = NavigationBarItemDefaults.colors(
                             selectedIconColor = Primary,

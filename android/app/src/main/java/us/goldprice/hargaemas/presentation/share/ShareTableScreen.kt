@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.WorkspacePremium
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -225,7 +226,7 @@ fun ShareableCanvasContent(
     ) {
         // App Logo & Title
         Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center, verticalAlignment = Alignment.CenterVertically) {
-            Image(painterResource(R.mipmap.ic_launcher_round), contentDescription = null, modifier = Modifier.size(32.dp))
+            Icon(Icons.Default.WorkspacePremium, contentDescription = null, tint = headerBlue, modifier = Modifier.size(32.dp))
             Spacer(Modifier.width(8.dp))
             Text("Harga Emas Hari Ini", style = MaterialTheme.typography.titleMedium, color = headerBlue, fontWeight = FontWeight.Bold)
         }

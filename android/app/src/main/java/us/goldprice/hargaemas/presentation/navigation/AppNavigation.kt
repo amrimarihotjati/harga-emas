@@ -53,7 +53,7 @@ sealed class Screen(val route: String, val title: String, val icon: ImageVector)
 @Composable
 fun AppNavigation(viewModel: MainViewModel, simulationViewModel: us.goldprice.hargaemas.presentation.simulation.SimulationViewModel) {
     val navController = rememberNavController()
-    val items = listOf(Screen.Home, Screen.Compare, Screen.OneGram, Screen.ShareTable, Screen.Portfolio)
+    val items = listOf(Screen.Home, Screen.Compare, Screen.Simulation, Screen.Portfolio, Screen.OneGram, Screen.ShareTable)
     val uiState by viewModel.uiState.collectAsState()
     val adConfig = (uiState as? MainUiState.Success)?.adConfig
     val context = LocalContext.current

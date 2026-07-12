@@ -160,5 +160,48 @@ def main():
     print(f"Data saved to {prices_path}")
     print(f"Extracted {len(data['prices'])} items.")
     
+    # Update history.json
+    history_path = os.path.join(json_dir, 'history.json')
+    history_data = []
+    if os.path.exists(history_path):
+        try:
+            with open(history_path, 'r') as f:
+                history_data = json.load(f)
+        except Exception as e:
+            print("Could not load history data, starting fresh:", e)
+            history_data = []
+            
+    now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=7)))
+    date_only_str = now.strftime("%Y-%m-%d")
+    
+    # Extract 1 gram prices from scraped data
+    for item in data['prices']:
+        if item['weight'] == "1" or item['weight'] == "1.0":
+            vendor_name = item['unit']
+            # Find if entry for this vendor and date already exists
+            found = False
+            for h in history_data:
+                if h['vendor'] == vendor_name and h['date'] == date_only_str:
+                    h['buy_price'] = item['buy_price']
+                    h['sell_price'] = item['sell_price']
+                    found = True
+                    break
+            
+            if not found:
+                history_data.append({
+                    "vendor": vendor_name,
+                    "date": date_only_str,
+                    "buy_price": item['buy_price'],
+                    "sell_price": item['sell_price']
+                })
+                
+    # Sort history by date and vendor just in case
+    history_data = sorted(history_data, key=lambda x: (x['date'], x['vendor']))
+    
+    with open(history_path, 'w') as f:
+        json.dump(history_data, f, indent=4)
+        
+    print(f"History saved to {history_path}")
+
 if __name__ == "__main__":
     main()
